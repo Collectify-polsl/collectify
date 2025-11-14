@@ -21,9 +21,4 @@ public class FieldDefinition
     /// Type of the field, for example text or integer.
     /// </summary>
     public FieldType FieldType { get; set; }
-
-    /// <summary>
-    /// Navigation property to the owning template.
-    /// </summary>
-    public Template Template { get; set; } = null!;
 }
