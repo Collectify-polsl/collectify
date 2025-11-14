@@ -1,6 +1,7 @@
-﻿using Collectify.Model.Enums;
+﻿using Collectify.Model.Entities;
+using Collectify.Model.Enums;
 
-namespace Collectify.Model.Entities;
+namespace Collectify.Model.Collection;
 
 /// <summary>
 /// Represents a value of a specific field for a given item.
@@ -11,11 +12,6 @@ public class FieldValue
     /// Unique identifier of the field value.
     /// </summary>
     public int Id { get; set; }
-
-    /// <summary>
-    /// Identifier of the item that owns this value.
-    /// </summary>
-    public int ItemId { get; set; }
 
     /// <summary>
     /// Navigation property to the owning item.

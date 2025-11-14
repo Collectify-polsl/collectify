@@ -8,7 +8,7 @@ namespace Collectify.Model.Entities;
 public class FieldDefinition
 {
     /// <summary>
-    /// Unique identifier of the field definition.
+    /// Index of the field definition in this template.
     /// </summary>
     public int Id { get; set; }
 
@@ -21,11 +21,6 @@ public class FieldDefinition
     /// Type of the field, for example text or integer.
     /// </summary>
     public FieldType FieldType { get; set; }
-
-    /// <summary>
-    /// Identifier of the template that owns this field definition.
-    /// </summary>
-    public int TemplateId { get; set; }
 
     /// <summary>
     /// Navigation property to the owning template.

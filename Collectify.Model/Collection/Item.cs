@@ -1,4 +1,4 @@
-﻿namespace Collectify.Model.Entities;
+﻿namespace Collectify.Model.Collection;
 
 /// <summary>
 /// Represents a single item that belongs to a collection.
@@ -15,10 +15,6 @@ public class Item
     /// </summary>
     public DateTime CreationDate { get; set; }
 
-    /// <summary>
-    /// Identifier of the collection that owns this item.
-    /// </summary>
-    public int CollectionId { get; set; }
 
     /// <summary>
     /// Navigation property to the owning collection.

@@ -1,4 +1,6 @@
-﻿namespace Collectify.Model.Entities;
+﻿using Collectify.Model.Entities;
+
+namespace Collectify.Model.Collection;
 
 /// <summary>
 /// Represents a user collection based on a specific template.
