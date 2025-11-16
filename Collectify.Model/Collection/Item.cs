@@ -28,25 +28,5 @@ public class Item
     /// <summary>
     /// Field values that describe this item.
     /// </summary>
-    public ICollection<FieldValue> FieldValues { get; set; } = new List<FieldValue>();
-
-    /// <summary>
-    /// Foreign key to the previous item in a logical sequence.
-    /// </summary>
-    public int? PreviousItemId { get; set; }
-
-    /// <summary>
-    /// Optional reference to the previous item in a logical sequence. Null means this is the first item in that chain.
-    /// </summary>
-    public Item? PreviousItem { get; set; }
-
-    /// <summary>
-    /// Foreign key to the next item in a logical sequence.
-    /// </summary>
-    public int? NextItemId { get; set; }
-
-    /// <summary>
-    /// Optional reference to the next item in a logical sequence. Null means this is the last item in that chain.
-    /// </summary>
-    public Item? NextItem { get; set; }
+    public List<FieldValue> Values { get; set; } = [];
 }

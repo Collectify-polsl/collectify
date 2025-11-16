@@ -18,5 +18,5 @@ public class Template
     /// <summary>
     /// Collection of field definitions that belong to this template.
     /// </summary>
-    public ICollection<FieldDefinition> Fields { get; set; } = new List<FieldDefinition>();
+    public List<FieldDefinition> Fields { get; set; } = [];
 }
