@@ -20,6 +20,11 @@ public class CollectifyContext(DbContextOptions<CollectifyContext> options) : Db
     {
         base.OnModelCreating(modelBuilder);
 
+        ConfigureTemplate(modelBuilder);
+        ConfigureFieldDefinition(modelBuilder);
+        ConfigureCollection(modelBuilder);
+        ConfigureItem(modelBuilder);
+        ConfigureFieldValues(modelBuilder);
     }
 
     private static void ConfigureTemplate(ModelBuilder modelBuilder)
