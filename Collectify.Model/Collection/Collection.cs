@@ -23,6 +23,11 @@ public class Collection
     public string? Description { get; set; }
 
     /// <summary>
+    /// Foreign key of the template used by this collection.
+    /// </summary>
+    public int TemplateId { get; set; }
+
+    /// <summary>
     /// Navigation property to the template used by this collection.
     /// </summary>
     public Template Template { get; set; } = null!;

@@ -16,6 +16,11 @@ public class Item
     public DateTime CreationDate { get; set; }
 
     /// <summary>
+    /// Foreign key of the collection this item belongs to.
+    /// </summary>
+    public int CollectionId { get; set; }
+
+    /// <summary>
     /// Navigation property to the owning collection.
     /// </summary>
     public Collection Collection { get; set; } = null!;
@@ -26,9 +31,19 @@ public class Item
     public ICollection<FieldValue> FieldValues { get; set; } = new List<FieldValue>();
 
     /// <summary>
+    /// Foreign key to the previous item in a logical sequence.
+    /// </summary>
+    public int? PreviousItemId { get; set; }
+
+    /// <summary>
     /// Optional reference to the previous item in a logical sequence. Null means this is the first item in that chain.
     /// </summary>
     public Item? PreviousItem { get; set; }
+
+    /// <summary>
+    /// Foreign key to the next item in a logical sequence.
+    /// </summary>
+    public int? NextItemId { get; set; }
 
     /// <summary>
     /// Optional reference to the next item in a logical sequence. Null means this is the last item in that chain.

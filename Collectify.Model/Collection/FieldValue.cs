@@ -14,9 +14,19 @@ public class FieldValue
     public int Id { get; set; }
 
     /// <summary>
+    /// Foreign key of the item this field value belongs to.
+    /// </summary>
+    public int ItemId { get; set; }
+
+    /// <summary>
     /// The item to which this field value belongs.
     /// </summary>
     public Item Item { get; set; } = null!;
+
+    /// <summary>
+    /// Foreign key of the field definition describing this value.
+    /// </summary>
+    public int FieldDefinitionId { get; set; }
 
     /// <summary>
     /// The definition describing the type and meaning of this field value.
@@ -53,6 +63,11 @@ public class FieldValue
     /// Contains a reference to another <see cref="Item"/> in a different collection.
     /// </summary>
     public Item? RelatedItem { get; set; }
+
+    /// <summary>
+    /// Foreign key to the related item (for ItemReference fields).
+    /// </summary>
+    public int? RelatedItemId { get; set; }
 
     /// <summary>
     /// Returns the strongly typed value of this field based on its <see cref="FieldDefinition.FieldType"/>.
