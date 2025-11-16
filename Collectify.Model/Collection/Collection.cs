@@ -1,4 +1,6 @@
-﻿namespace Collectify.Model.Entities;
+﻿using Collectify.Model.Entities;
+
+namespace Collectify.Model.Collection;
 
 /// <summary>
 /// Represents a user collection based on a specific template.
@@ -19,11 +21,6 @@ public class Collection
     /// Optional description of the collection.
     /// </summary>
     public string? Description { get; set; }
-
-    /// <summary>
-    /// Identifier of the template used by this collection.
-    /// </summary>
-    public int TemplateId { get; set; }
 
     /// <summary>
     /// Navigation property to the template used by this collection.

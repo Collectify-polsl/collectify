@@ -1,4 +1,4 @@
-﻿using Collectify.Model.Entities;
+﻿using Collectify.Model.Collection;
 
 namespace Collectify.Model.Interfaces;
 

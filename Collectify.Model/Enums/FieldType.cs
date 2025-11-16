@@ -28,5 +28,10 @@ public enum FieldType
     /// <summary>
     /// A binary image value stored as bytes.
     /// </summary>
-    Image
+    Image,
+
+    /// <summary>
+    /// A reference to another <see cref="Collectify.Model.Entities.Item"/> in a different collection.
+    /// </summary>
+    ItemReference
 }

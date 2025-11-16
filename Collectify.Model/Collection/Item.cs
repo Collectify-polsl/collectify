@@ -1,4 +1,4 @@
-﻿namespace Collectify.Model.Entities;
+﻿namespace Collectify.Model.Collection;
 
 /// <summary>
 /// Represents a single item that belongs to a collection.
@@ -16,11 +16,6 @@ public class Item
     public DateTime CreationDate { get; set; }
 
     /// <summary>
-    /// Identifier of the collection that owns this item.
-    /// </summary>
-    public int CollectionId { get; set; }
-
-    /// <summary>
     /// Navigation property to the owning collection.
     /// </summary>
     public Collection Collection { get; set; } = null!;
@@ -29,4 +24,14 @@ public class Item
     /// Field values that describe this item.
     /// </summary>
     public ICollection<FieldValue> FieldValues { get; set; } = new List<FieldValue>();
+
+    /// <summary>
+    /// Optional reference to the previous item in a logical sequence. Null means this is the first item in that chain.
+    /// </summary>
+    public Item? PreviousItem { get; set; }
+
+    /// <summary>
+    /// Optional reference to the next item in a logical sequence. Null means this is the last item in that chain.
+    /// </summary>
+    public Item? NextItem { get; set; }
 }
