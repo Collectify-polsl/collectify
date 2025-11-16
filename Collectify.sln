@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36623.8 d17.14
+VisualStudioVersion = 17.14.36623.8
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Collectify.Model", "Collectify.Model\Collectify.Model.csproj", "{283801AF-AB7C-4F88-86E0-C2EBDB14D876}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Collectify.App", "Collectify.App\Collectify.App.csproj", "{7C39720C-D66E-4374-A435-1FA54DCA1FDE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Collectify.Data", "Collectify.Data\Collectify.Data.csproj", "{9319D972-96FC-4A0C-90A3-36D7A440516E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{7C39720C-D66E-4374-A435-1FA54DCA1FDE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7C39720C-D66E-4374-A435-1FA54DCA1FDE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7C39720C-D66E-4374-A435-1FA54DCA1FDE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9319D972-96FC-4A0C-90A3-36D7A440516E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9319D972-96FC-4A0C-90A3-36D7A440516E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9319D972-96FC-4A0C-90A3-36D7A440516E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9319D972-96FC-4A0C-90A3-36D7A440516E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
