@@ -21,4 +21,6 @@ public class FieldDefinition
     /// Type of the field, for example text or integer.
     /// </summary>
     public FieldType FieldType { get; set; }
+
+    public bool IsList { get; set; } = false;
 }
