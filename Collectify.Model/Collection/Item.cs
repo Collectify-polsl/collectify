@@ -15,7 +15,6 @@ public class Item
     /// </summary>
     public DateTime CreationDate { get; set; }
 
-
     /// <summary>
     /// Navigation property to the owning collection.
     /// </summary>
@@ -25,4 +24,14 @@ public class Item
     /// Field values that describe this item.
     /// </summary>
     public ICollection<FieldValue> FieldValues { get; set; } = new List<FieldValue>();
+
+    /// <summary>
+    /// Optional reference to the previous item in a logical sequence. Null means this is the first item in that chain.
+    /// </summary>
+    public Item? PreviousItem { get; set; }
+
+    /// <summary>
+    /// Optional reference to the next item in a logical sequence. Null means this is the last item in that chain.
+    /// </summary>
+    public Item? NextItem { get; set; }
 }
