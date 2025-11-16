@@ -35,5 +35,5 @@ public class Collection
     /// <summary>
     /// Items that belong to this collection.
     /// </summary>
-    public List<Item> Items { get; set; } = [];
+    public ICollection<Item> Items { get; set; } = new List<Item>();
 }

@@ -89,7 +89,7 @@ public class CollectifyContext(DbContextOptions<CollectifyContext> options) : Db
             entity.Property(x => x.CreationDate)
             .IsRequired();
 
-            entity.HasMany(x => x.Values)
+            entity.HasMany(x => x.FieldValues)
             .WithOne(x => x.Item)
             .HasForeignKey(x => x.ItemId)
             .OnDelete(DeleteBehavior.Cascade);
@@ -113,7 +113,7 @@ public class CollectifyContext(DbContextOptions<CollectifyContext> options) : Db
             entity.HasKey(x => x.Id);
 
             entity.HasOne(x => x.Item)
-            .WithMany(x => x.Values)
+            .WithMany(x => x.FieldValues)
             .HasForeignKey(x => x.ItemId)
             .OnDelete(DeleteBehavior.Cascade);
 
