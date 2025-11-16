@@ -6,30 +6,51 @@ using Collectify.Model.Enums;
 /// <summary>
 /// Represents the value for a specific field definition on an item.
 /// </summary>
-public abstract class FieldValue
+public class FieldValue
 {
-    /// <summary>
-    /// Unique identifier of the field value.
-    /// </summary>
     public int Id { get; set; }
 
-    /// <summary>
-    /// Navigation property to the field definition.
-    /// </summary>
-    public required FieldDefinition FieldDefinition { get; set; }
+    public Item Item { get; set; } = null!;
 
-    /// <summary>
-    /// Convenience property that exposes the field type of this value.
-    /// </summary>
-    public FieldType FieldType => FieldDefinition.FieldType;
+    public FieldDefinition FieldDefinition { get; set; } = null!;
 
-    /// <summary>
-    /// Gets the value of this field as a raw object.
-    /// </summary>
-    public abstract object? GetValue();
+    public string? TextValue { get; set; }
+    public int? IntValue { get; set; }
+    public decimal? DecimalValue { get; set; }
+    public DateTime? DateValue { get; set; }
+    public byte[]? ImageValue { get; set; }
 
-    /// <summary>
-    /// Sets the value of this field from a raw object.
-    /// </summary>
-    public abstract void SetValue(object? value);
+    public object? GetValue() => FieldDefinition.FieldType switch
+    {
+        FieldType.Text => TextValue,
+        FieldType.Integer => IntValue,
+        FieldType.Decimal => DecimalValue,
+        FieldType.Date => DateValue,
+        FieldType.Image => ImageValue,
+        _ => throw new NotSupportedException($"Unsupported field type {FieldDefinition.FieldType}")
+    };
+
+    public void SetValue(object? value)
+    {
+        switch (FieldDefinition.FieldType)
+        {
+            case FieldType.Text:
+                TextValue = (string?)value;
+                break;
+            case FieldType.Integer:
+                IntValue = value is null ? null : Convert.ToInt32(value);
+                break;
+            case FieldType.Decimal:
+                DecimalValue = value is null ? null : Convert.ToDecimal(value);
+                break;
+            case FieldType.Date:
+                DateValue = (DateTime?)value;
+                break;
+            case FieldType.Image:
+                ImageValue = (byte[]?)value;
+                break;
+            default:
+                throw new NotSupportedException($"Unsupported field type {FieldDefinition.FieldType}");
+        }
+    }
 }
