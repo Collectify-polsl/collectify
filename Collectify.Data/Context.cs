@@ -38,8 +38,8 @@ public class CollectifyContext(DbContextOptions<CollectifyContext> options) : Db
                .HasMaxLength(200);
 
                entity.HasMany(x => x.Fields)
-               .WithOne()
-               .HasForeignKey("TemplateId")
+               .WithOne(f => f.Template)
+               .HasForeignKey(f => f.TemplateId)
                .OnDelete(DeleteBehavior.Cascade);
            }
         );
@@ -56,7 +56,8 @@ public class CollectifyContext(DbContextOptions<CollectifyContext> options) : Db
             .HasMaxLength(200);
 
             entity.Property(x => x.FieldType)
-            .IsRequired();
+            .IsRequired()
+            .HasConversion<string>();
         });
     }
 
@@ -108,6 +109,9 @@ public class CollectifyContext(DbContextOptions<CollectifyContext> options) : Db
             .WithMany()
             .HasForeignKey(x=> x.NextItemId)
             .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => x.CreationDate);
+            entity.HasIndex(x => x.CollectionId);
         });
     }
 
@@ -131,6 +135,11 @@ public class CollectifyContext(DbContextOptions<CollectifyContext> options) : Db
             .WithMany()
             .HasForeignKey(x => x.RelatedItemId)
             .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => new { x.ItemId, x.FieldDefinitionId })
+            .IsUnique();
+
+            entity.HasIndex(x => x.FieldDefinitionId);
         });
     }
 }

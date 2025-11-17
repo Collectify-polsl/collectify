@@ -18,6 +18,16 @@ public class FieldDefinition
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
+    /// Foreign key of the template this field definition belongs to.
+    /// </summary>
+    public int TemplateId { get; set; }
+
+    /// <summary>
+    /// Template this field definition belongs to.
+    /// </summary>
+    public Template Template { get; set; } = null!;
+
+    /// <summary>
     /// Type of the field, for example text or integer.
     /// </summary>
     public FieldType FieldType { get; set; }

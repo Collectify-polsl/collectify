@@ -38,9 +38,7 @@ public class ItemService
     public bool RemoveValueFromFieldList(Item item, FieldDefinition fieldDef, object? valueToRemove)
     {
         if (!fieldDef.IsList)
-        {
             return false;
-        }
 
         var fieldValueToRemove = item.FieldValues
             .Where(x => x.FieldDefinitionId == fieldDef.Id)
