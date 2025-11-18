@@ -14,7 +14,7 @@ public static class DbFactory
 
         var context = new CollectifyContext(options);
 
-        context.Database.EnsureCreated();
+        context.Database.Migrate();
 
         return context;
     }
