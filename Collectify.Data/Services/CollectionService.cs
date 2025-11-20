@@ -52,4 +52,29 @@ public class CollectionService : ICollectionService
 
         return await _unitOfWork.Collections.GetByIdAsync(collectionId, cancellationToken);
     }
+
+    public async Task UpdateCollectionAsync(int collectionId, string name, string? description, CancellationToken cancellationToken = default)
+    {
+        CCollection? collection = await _unitOfWork.Collections.GetByIdAsync(collectionId, cancellationToken);
+
+        if (collection is null)
+            throw new InvalidOperationException($"Collection with id {collectionId} was not found.");
+
+        collection.Name = name;
+        collection.Description = description;
+
+        _unitOfWork.Collections.Update(collection);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task DeleteCollectionAsync(int collectionId, CancellationToken cancellationToken = default)
+    {
+        CCollection? collection = await _unitOfWork.Collections.GetByIdAsync(collectionId, cancellationToken);
+
+        if (collection is null)
+            return;
+
+        _unitOfWork.Collections.Remove(collection);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
 }
