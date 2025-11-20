@@ -21,4 +21,14 @@ public interface ICollectionService
     /// Returns a single collection optionally including its items.
     /// </summary>
     Task<CCollection?> GetCollectionAsync(int collectionId, bool includeItems = false, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates basic collection data (name, description).
+    /// </summary>
+    Task UpdateCollectionAsync(int collectionId, string name, string? description, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a collection and its items.
+    /// </summary>
+    Task DeleteCollectionAsync(int collectionId, CancellationToken cancellationToken = default);
 }

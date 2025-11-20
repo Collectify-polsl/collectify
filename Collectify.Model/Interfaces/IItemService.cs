@@ -17,4 +17,14 @@ public interface IItemService
     /// Returns all items that belong to a specific collection.
     /// </summary>
     Task<IReadOnlyList<Item>> GetItemsForCollectionAsync(int collectionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Replaces all field values of the item with the provided ones.
+    /// </summary>
+    Task<Item> UpdateItemAsync(int itemId, IReadOnlyList<NewItemFieldValueInput> fieldValues, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a single item and its field values.
+    /// </summary>
+    Task DeleteItemAsync(int itemId, CancellationToken cancellationToken = default);
 }
