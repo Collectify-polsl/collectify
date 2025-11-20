@@ -43,6 +43,19 @@ public class TemplateService : ITemplateService
         return template;
     }
 
+    public async Task UpdateTemplateAsync(int templateId, string name, CancellationToken cancellationToken = default)
+    {
+        Template? template = await _unitOfWork.Templates.GetByIdAsync(templateId, cancellationToken);
+
+        if (template is null)
+            throw new InvalidOperationException($"Template with id {templateId} was not found.");
+
+        template.Name = name;
+
+        _unitOfWork.Templates.Update(template);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<FieldDefinition> AddFieldAsync(int templateId, string name, FieldType fieldType, bool isList, 
         CancellationToken cancellationToken = default)
     {
@@ -90,4 +103,21 @@ public class TemplateService : ITemplateService
     {
         return await _unitOfWork.Templates.GetAllAsync(cancellationToken);
     }
+
+    public async Task DeleteTemplateAsync(int templateId, CancellationToken cancellationToken = default)
+    {
+        Template? template = await _unitOfWork.Templates.GetByIdAsync(templateId, cancellationToken);
+
+        if (template is null)
+            return;
+
+        var anyCollections = (await _unitOfWork.Collections.FindAsync(c => c.TemplateId == templateId, cancellationToken)).Any();
+
+        if (anyCollections)
+            throw new InvalidOperationException("Cannot delete a template that is used by existing collections.");
+
+        _unitOfWork.Templates.Remove(template);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
 }

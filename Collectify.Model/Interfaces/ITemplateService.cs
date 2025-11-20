@@ -16,6 +16,11 @@ public interface ITemplateService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Updates only the basic metadata of the template (name).
+    /// </summary>
+    Task UpdateTemplateAsync(int templateId, string name, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Adds a single field definition to an existing template.
     /// </summary>
     Task<FieldDefinition> AddFieldAsync(int templateId, string name, FieldType fieldType, bool isList,
@@ -35,4 +40,9 @@ public interface ITemplateService
     /// Returns all templates (without fields).
     /// </summary>
     Task<IReadOnlyList<Template>> GetAllTemplatesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a template if not used by any collection.
+    /// </summary>
+    Task DeleteTemplateAsync(int templateId, CancellationToken cancellationToken = default);
 }
