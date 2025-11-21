@@ -39,7 +39,9 @@ public interface ITemplateService
     /// <summary>
     /// Returns all templates (without fields).
     /// </summary>
-    Task<IReadOnlyList<Template>> GetAllTemplatesAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Template>> GetAllTemplatesAsync(string? search = null, bool sortDescending = false, 
+        CancellationToken cancellationToken = default);
+
 
     /// <summary>
     /// Deletes a template if not used by any collection.

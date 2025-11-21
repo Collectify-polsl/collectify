@@ -44,9 +44,56 @@ public class ItemService : IItemService
         return item;
     }
 
-    public async Task<IReadOnlyList<Item>> GetItemsForCollectionAsync(int collectionId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Item>> GetItemsForCollectionAsync(int collectionId, string? search = null, int? sortByFieldDefinitionId = null, 
+        bool descending = false, CancellationToken cancellationToken = default)
     {
-        return await _unitOfWork.Items.GetByCollectionIdAsync(collectionId, cancellationToken);
+        var items = await _unitOfWork.Items
+            .GetByCollectionIdAsync(collectionId, cancellationToken);
+
+        IEnumerable<Item> query = items;
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            string term = search.Trim();
+            query = query.Where(i => i.FieldValues.Any(v => !string.IsNullOrEmpty(v.TextValue) 
+            && v.TextValue.Contains(term, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        if (sortByFieldDefinitionId is null)
+        {
+            query = descending ? query.OrderByDescending(i => i.CreationDate) : query.OrderBy(i => i.CreationDate);
+
+            return query.ToList();
+        }
+
+        FieldDefinition? def = await _unitOfWork.FieldDefinitions.GetByIdAsync(sortByFieldDefinitionId.Value, cancellationToken);
+
+        if (def is null)
+            throw new InvalidOperationException($"FieldDefinition with id {sortByFieldDefinitionId.Value} was not found.");
+
+        Func<Item, object?> keySelector = def.FieldType switch
+        {
+            FieldType.Text => i => i.FieldValues
+                .FirstOrDefault(v => v.FieldDefinitionId == def.Id)?.TextValue,
+
+            FieldType.Integer => i => i.FieldValues
+                .FirstOrDefault(v => v.FieldDefinitionId == def.Id)?.IntValue,
+
+            FieldType.Decimal => i => i.FieldValues
+                .FirstOrDefault(v => v.FieldDefinitionId == def.Id)?.DecimalValue,
+
+            FieldType.Date => i => i.FieldValues
+                .FirstOrDefault(v => v.FieldDefinitionId == def.Id)?.DateValue,
+
+            FieldType.ItemReference => i => i.FieldValues
+                .FirstOrDefault(v => v.FieldDefinitionId == def.Id)?.RelatedItemId,
+
+            _ => throw new NotSupportedException($"Unsupported type {def.FieldType}")
+        };
+
+        query = descending ? query.OrderByDescending(keySelector) : query.OrderBy(keySelector);
+
+        return query.ToList();
     }
 
     public async Task DeleteItemAsync(int itemId, CancellationToken cancellationToken = default)

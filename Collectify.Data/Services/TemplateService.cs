@@ -99,9 +99,22 @@ public class TemplateService : ITemplateService
         return await _unitOfWork.Templates.GetByIdAsync(templateId, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Template>> GetAllTemplatesAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Template>> GetAllTemplatesAsync(string? search = null, bool sortDescending = false, 
+        CancellationToken cancellationToken = default)
     {
-        return await _unitOfWork.Templates.GetAllAsync(cancellationToken);
+        IReadOnlyList<Template> templates = await _unitOfWork.Templates.GetAllAsync(cancellationToken);
+
+        IEnumerable<Template> query = templates;
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            string term = search.Trim();
+            query = query.Where(t => !string.IsNullOrEmpty(t.Name) && t.Name.Contains(term, StringComparison.OrdinalIgnoreCase));
+        }
+
+        query = sortDescending ? query.OrderByDescending(t => t.Name) : query.OrderBy(t => t.Name);
+
+        return query.ToList();
     }
 
     public async Task DeleteTemplateAsync(int templateId, CancellationToken cancellationToken = default)
@@ -119,5 +132,4 @@ public class TemplateService : ITemplateService
         _unitOfWork.Templates.Remove(template);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
-
 }
