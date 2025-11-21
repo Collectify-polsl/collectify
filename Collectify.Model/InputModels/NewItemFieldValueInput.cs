@@ -18,5 +18,7 @@ public class NewItemFieldValueInput
 
     public bool? BoolValue { get; set; }
 
+    public byte[]? ImageValue { get; set; }
+
     public int? RelatedItemId { get; set; }
 }

@@ -216,10 +216,10 @@ public class ItemService : IItemService
             .Distinct()
             .ToArray();
 
-        IReadOnlyList<FieldDefinition> definitions =await _unitOfWork.FieldDefinitions.FindAsync(d => definitionIds.Contains(d.Id), 
+        IReadOnlyList<FieldDefinition> definitions = await _unitOfWork.FieldDefinitions.FindAsync(d => definitionIds.Contains(d.Id),
             cancellationToken);
 
-        Dictionary<int, FieldDefinition> definitionsById =definitions.ToDictionary(d => d.Id);
+        Dictionary<int, FieldDefinition> definitionsById = definitions.ToDictionary(d => d.Id);
 
         List<FieldValue> result = new List<FieldValue>();
 
@@ -241,19 +241,32 @@ public class ItemService : IItemService
                     break;
 
                 case FieldType.Integer:
+                    if (input.IntValue == null && !string.IsNullOrEmpty(input.TextValue))
+                        throw new ArgumentException($"Field '{def.Name}' requires an integer value.");
                     fv.IntValue = input.IntValue;
                     break;
 
                 case FieldType.Decimal:
-                    fv.DecimalValue = input.DecimalValue;
+                    if (input.DecimalValue == null && input.IntValue != null)
+                        fv.DecimalValue = Convert.ToDecimal(input.IntValue);
+                    else if (input.DecimalValue == null && !string.IsNullOrEmpty(input.TextValue))
+                        throw new ArgumentException($"Field '{def.Name}' requires a decimal value.");
+                    else
+                        fv.DecimalValue = input.DecimalValue;
                     break;
 
                 case FieldType.Date:
+                    if (input.DateValue == null && !string.IsNullOrEmpty(input.TextValue))
+                        throw new ArgumentException($"Field '{def.Name}' requires a valid date.");
                     fv.DateValue = input.DateValue;
                     break;
 
                 case FieldType.ItemReference:
                     fv.RelatedItemId = input.RelatedItemId;
+                    break;
+
+                case FieldType.Image:
+                    fv.ImageValue = input.ImageValue;
                     break;
 
                 default:
