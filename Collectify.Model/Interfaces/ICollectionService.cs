@@ -15,7 +15,7 @@ public interface ICollectionService
     /// <summary>
     /// Returns all collections without their items.
     /// </summary>
-    Task<IReadOnlyList<CCollection>> GetCollectionsAsync(int? templateId = null, string? search = null, bool sortDescending = false, 
+    Task<IReadOnlyList<CCollection>> GetCollectionsAsync(int? templateId = null, string? search = null, bool sortDescending = false,
         CancellationToken cancellationToken = default);
 
 

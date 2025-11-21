@@ -12,7 +12,7 @@ public interface ITemplateService
     /// <summary>
     /// Creates a new template with the given name and field definitions.
     /// </summary>
-    Task<Template> CreateTemplateAsync(string name, IReadOnlyList<TemplateFieldDefinitionInput> fields, 
+    Task<Template> CreateTemplateAsync(string name, IReadOnlyList<TemplateFieldDefinitionInput> fields,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -39,7 +39,7 @@ public interface ITemplateService
     /// <summary>
     /// Returns all templates (without fields).
     /// </summary>
-    Task<IReadOnlyList<Template>> GetAllTemplatesAsync(string? search = null, bool sortDescending = false, 
+    Task<IReadOnlyList<Template>> GetAllTemplatesAsync(string? search = null, bool sortDescending = false,
         CancellationToken cancellationToken = default);
 
 

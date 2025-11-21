@@ -1,6 +1,4 @@
-﻿using Collectify.Model.Collection;
-
-namespace Collectify.Model.Interfaces;
+﻿namespace Collectify.Model.Interfaces;
 
 /// <summary>
 ///     Repository interface dedicated to <see cref="Collection" /> entities.

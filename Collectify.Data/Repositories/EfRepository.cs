@@ -1,6 +1,6 @@
-﻿using System.Linq.Expressions;
-using Collectify.Model.Interfaces;
+﻿using Collectify.Model.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Collectify.Data.Repositories;
 

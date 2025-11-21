@@ -1,9 +1,9 @@
-﻿using CCollection = Collectify.Model.Collection.Collection;
-using Collectify.Model.Collection;
+﻿using Collectify.Model.Collection;
 using Collectify.Model.Entities;
 using Collectify.Model.Enums;
 using Collectify.Model.InputModels;
 using Collectify.Model.Interfaces;
+using CCollection = Collectify.Model.Collection.Collection;
 
 namespace Collectify.Data.Services;
 
@@ -19,7 +19,7 @@ public class ItemService : IItemService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Item> CreateItemAsync(int collectionId, IReadOnlyList<NewItemFieldValueInput> fieldValues, int? previousItemId, 
+    public async Task<Item> CreateItemAsync(int collectionId, IReadOnlyList<NewItemFieldValueInput> fieldValues, int? previousItemId,
         int? nextItemId, CancellationToken cancellationToken = default)
     {
         CCollection? collection = await _unitOfWork.Collections.GetByIdAsync(collectionId, cancellationToken);
@@ -27,7 +27,7 @@ public class ItemService : IItemService
         if (collection is null)
             throw new InvalidOperationException($"Collection with id {collectionId} was not found.");
 
-        await ValidateLinksAsync(currentItemId: null, collectionId: collectionId, previousItemId: previousItemId, nextItemId: nextItemId, 
+        await ValidateLinksAsync(currentItemId: null, collectionId: collectionId, previousItemId: previousItemId, nextItemId: nextItemId,
             cancellationToken: cancellationToken);
 
         Item item = new Item
@@ -52,7 +52,7 @@ public class ItemService : IItemService
         return item;
     }
 
-    public async Task<IReadOnlyList<Item>> GetItemsForCollectionAsync(int collectionId, string? search = null, int? sortByFieldDefinitionId = null, 
+    public async Task<IReadOnlyList<Item>> GetItemsForCollectionAsync(int collectionId, string? search = null, int? sortByFieldDefinitionId = null,
         bool descending = false, CancellationToken cancellationToken = default)
     {
         var items = await _unitOfWork.Items.GetByCollectionIdAsync(collectionId, cancellationToken);
@@ -104,7 +104,7 @@ public class ItemService : IItemService
         return query.ToList();
     }
 
-    public async Task<Item> UpdateItemAsync(int itemId, IReadOnlyList<NewItemFieldValueInput> fieldValues, int? previousItemId, int? nextItemId, 
+    public async Task<Item> UpdateItemAsync(int itemId, IReadOnlyList<NewItemFieldValueInput> fieldValues, int? previousItemId, int? nextItemId,
         CancellationToken cancellationToken = default)
     {
         Item? item = await _unitOfWork.Items.GetByIdAsync(itemId, cancellationToken);
@@ -117,7 +117,7 @@ public class ItemService : IItemService
         int? oldPreviousId = item.PreviousItemId;
         int? oldNextId = item.NextItemId;
 
-        await ValidateLinksAsync(currentItemId: itemId, collectionId: collectionId, previousItemId: previousItemId, nextItemId: nextItemId, 
+        await ValidateLinksAsync(currentItemId: itemId, collectionId: collectionId, previousItemId: previousItemId, nextItemId: nextItemId,
             cancellationToken: cancellationToken);
 
         if (oldPreviousId.HasValue && oldPreviousId != previousItemId)
@@ -290,7 +290,7 @@ public class ItemService : IItemService
     /// <returns>A task that represents the asynchronous validation operation.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the specified previous or next item does not exist, does not belong to the collection, or if the link
     /// relationships are inconsistent.</exception>
-    private async Task ValidateLinksAsync(int? currentItemId, int collectionId, int? previousItemId, int? nextItemId, 
+    private async Task ValidateLinksAsync(int? currentItemId, int collectionId, int? previousItemId, int? nextItemId,
         CancellationToken cancellationToken)
     {
         if (currentItemId.HasValue)

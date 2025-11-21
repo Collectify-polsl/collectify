@@ -17,7 +17,7 @@ public class TemplateService : ITemplateService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Template> CreateTemplateAsync(string name, IReadOnlyList<TemplateFieldDefinitionInput> fields, 
+    public async Task<Template> CreateTemplateAsync(string name, IReadOnlyList<TemplateFieldDefinitionInput> fields,
         CancellationToken cancellationToken = default)
     {
         Template template = new Template
@@ -56,7 +56,7 @@ public class TemplateService : ITemplateService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<FieldDefinition> AddFieldAsync(int templateId, string name, FieldType fieldType, bool isList, 
+    public async Task<FieldDefinition> AddFieldAsync(int templateId, string name, FieldType fieldType, bool isList,
         CancellationToken cancellationToken = default)
     {
         Template? template = await _unitOfWork.Templates
@@ -99,7 +99,7 @@ public class TemplateService : ITemplateService
         return await _unitOfWork.Templates.GetByIdAsync(templateId, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Template>> GetAllTemplatesAsync(string? search = null, bool sortDescending = false, 
+    public async Task<IReadOnlyList<Template>> GetAllTemplatesAsync(string? search = null, bool sortDescending = false,
         CancellationToken cancellationToken = default)
     {
         IReadOnlyList<Template> templates = await _unitOfWork.Templates.GetAllAsync(cancellationToken);

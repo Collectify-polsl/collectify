@@ -1,5 +1,5 @@
-﻿using CCollection = Collectify.Model.Collection.Collection;
-using Collectify.Model.Interfaces;
+﻿using Collectify.Model.Interfaces;
+using CCollection = Collectify.Model.Collection.Collection;
 
 namespace Collectify.Data.Services;
 
@@ -15,7 +15,7 @@ public class CollectionService : ICollectionService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<CCollection> CreateCollectionAsync(int templateId, string name, string? description, 
+    public async Task<CCollection> CreateCollectionAsync(int templateId, string name, string? description,
         CancellationToken cancellationToken = default)
     {
         var template = await _unitOfWork.Templates.GetByIdAsync(templateId, cancellationToken);
@@ -35,7 +35,7 @@ public class CollectionService : ICollectionService
         return collection;
     }
 
-    public async Task<IReadOnlyList<CCollection>> GetCollectionsAsync(int? templateId = null, string? search = null, bool sortDescending = false, 
+    public async Task<IReadOnlyList<CCollection>> GetCollectionsAsync(int? templateId = null, string? search = null, bool sortDescending = false,
         CancellationToken cancellationToken = default)
     {
         IReadOnlyList<CCollection> collections = await _unitOfWork.Collections.GetAllAsync(cancellationToken);
