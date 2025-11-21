@@ -176,7 +176,7 @@ public class CollectifyContext(DbContextOptions<CollectifyContext> options) : Db
             entity.HasOne(x => x.RelatedItem)
             .WithMany()
             .HasForeignKey(x => x.RelatedItemId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasIndex(x => new { x.ItemId, x.FieldDefinitionId })
             .IsUnique();
