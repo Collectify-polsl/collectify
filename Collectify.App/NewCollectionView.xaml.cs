@@ -1,5 +1,8 @@
-﻿using System;
+﻿using Collectify.App.Commands;
+using Collectify.Model.Collection;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,14 +15,17 @@ using System.Windows.Shapes;
 
 namespace Collectify.App
 {
-    /// <summary>
-    /// Interaction logic for NewCollectionView.xaml
-    /// </summary>
+
     public partial class NewCollectionView : Window
     {
-        public NewCollectionView()
+        
+
+        public NewCollectionView(ObservableCollection<Collection> mainCollections)
         {
             InitializeComponent();
+        
         }
+
+     
     }
 }

@@ -19,8 +19,9 @@ public class MainWindowViewModel
     public MainWindowViewModel(IUnitOfWork unitOfWork)
     {
         _unitOfWork = unitOfWork;
+        
         LoadCollectionsCommand = new AsyncRelayCommand(LoadCollectionsAsync);
-
+        /**
         Collections.Add(new Collection
         {
             Name = "Stare Monety",
@@ -68,6 +69,7 @@ public class MainWindowViewModel
             Description = "Skala 1:18, edycje limitowane",
             Items = new ObservableCollection<Item> { new Item(), new Item(), new Item(), new Item(), new Item(), new Item(), new Item(), new Item(), new Item(), new Item() }
         });
+        **/
     }
 
     private async Task LoadCollectionsAsync()

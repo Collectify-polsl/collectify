@@ -5,8 +5,86 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Collectify.App"
         mc:Ignorable="d"
-        Title="NewCollectionView" Height="450" Width="800">
-    <Grid>
-        
+        Title="NewCollectionView" Height="542" Width="800">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+            <TextBlock Text="Dane Kolekcji" FontWeight="Bold" FontSize="16" Margin="0,0,0,10"/>
+
+            <Label Content="Nazwa Kolekcji:"/>
+            <TextBox Text="{Binding CollectionName, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
+
+            <Label Content="Opis:" Margin="0,5,0,0"/>
+            <TextBox Text="{Binding CollectionDescription}" Height="60" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Padding="5"/>
+        </StackPanel>
+
+        <GroupBox Grid.Row="1" Header="Dodaj nową kolumnę" Padding="10" Margin="0,0,0,20" BorderBrush="#007ACC">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="1.5*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Column="0" Text="Nazwa Pola" FontSize="11" Foreground="Gray"/>
+                <TextBlock Grid.Column="1" Text="Typ Danych" FontSize="11" Foreground="Gray" Margin="10,0,0,0"/>
+
+                <TextBox Grid.Row="1" Grid.Column="0" 
+                         Text="{Binding NewColumnName, UpdateSourceTrigger=PropertyChanged}" 
+                         Padding="5" Margin="0,5,0,0"/>
+
+                <ComboBox Grid.Row="1" Grid.Column="1" 
+                          ItemsSource="{Binding DataTypeList}"
+                          SelectedItem="{Binding SelectedNewColumnType}"
+                          Padding="5" Margin="10,5,10,0" IsEditable="False"/>
+
+                <Button Grid.Row="1" Grid.Column="2" Content="Dodaj +" 
+                        Command="{Binding AddColumnCommand}" 
+                        Padding="15,5" Margin="0,5,0,0" Background="#DDDDDD"/>
+            </Grid>
+        </GroupBox>
+
+        <Grid Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="Lista zdefiniowanych kolumn:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+
+            <ListView Grid.Row="1" ItemsSource="{Binding AddedColumns}" BorderThickness="1" BorderBrush="#CCCCCC">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="Nazwa" Width="200" DisplayMemberBinding="{Binding Name}"/>
+                        <GridViewColumn Header="Typ" Width="150" DisplayMemberBinding="{Binding DataType}"/>
+                        <GridViewColumn Header="Akcja" Width="80">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="Usuń" Foreground="Red" 
+                                            Command="{Binding DataContext.RemoveColumnCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+        </Grid>
+
+        <Button Grid.Row="3" Content="ZATWIERDŹ I UTWÓRZ KOLEKCJĘ" 
+                Command="{Binding SaveCollectionCommand}"
+                Height="40" Margin="0,15,0,0" 
+                Background="#007ACC" Foreground="White" FontWeight="Bold" FontSize="14"/>
+
     </Grid>
 </Window>
