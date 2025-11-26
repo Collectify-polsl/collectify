@@ -2,83 +2,49 @@
 using Collectify.Model.Collection;
 using Collectify.Model.Interfaces;
 using System.Collections.ObjectModel;
+using System.Windows;
 using System.Windows.Input;
-
 
 namespace Collectify.App.ViewModels;
 
 public class MainWindowViewModel
 {
-    
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly ICollectionService _collectionService;
+    private readonly Func<Window> _createCollectionWindowFactory; // <--- FABRYKA
 
     public ObservableCollection<Collection> Collections { get; } = new();
 
     public ICommand LoadCollectionsCommand { get; }
+    public ICommand CreateCollectionCommand { get; } // <--- NOWA KOMENDA
 
-    public MainWindowViewModel(IUnitOfWork unitOfWork)
+    // Dodajemy factory do konstruktora
+    public MainWindowViewModel(ICollectionService collectionService, Func<Window> createCollectionWindowFactory)
     {
-        _unitOfWork = unitOfWork;
-        
+        _collectionService = collectionService;
+        _createCollectionWindowFactory = createCollectionWindowFactory;
+
         LoadCollectionsCommand = new AsyncRelayCommand(LoadCollectionsAsync);
-        /**
-        Collections.Add(new Collection
-        {
-            Name = "Stare Monety",
-            Description = "5 rzymskich, 3 PRL",
-            Items = new ObservableCollection<Item> { new Item(), new Item(), new Item() }
-        });
+        CreateCollectionCommand = new RelayCommand(OpenCreateCollectionWindow);
 
-        Collections.Add(new Collection
-        {
-            Name = "Karty Kolekcjonerskie",
-            Description = "Kolekcja z lat 90-tych",
-            Items = new ObservableCollection<Item> { new Item(), new Item(), new Item(), new Item(), new Item() }
-        });
+        LoadCollectionsAsync();
+    }
 
-        Collections.Add(new Collection
-        {
-            Name = "Wina",
-            Description = "Zbiór Bordeaux",
-            Items = new ObservableCollection<Item> { new Item() }
-        });
-        Collections.Add(new Collection
-        {
-            Name = "Filmy Blu-ray",
-            Description = "Klasyka Science Fiction",
-            Items = new ObservableCollection<Item> { new Item(), new Item(), new Item(), new Item(), new Item(), new Item(), new Item() }
-        });
+    private void OpenCreateCollectionWindow()
+    {
+        // 1. Stwórz okno używając fabryki (wszystkie zależności są wstrzykiwane w App.xaml.cs)
+        var window = _createCollectionWindowFactory();
 
-        Collections.Add(new Collection
-        {
-            Name = "Autografy",
-            Description = "Gwiazdy Rocka i Sportu",
-            Items = new ObservableCollection<Item> { new Item(), new Item(), new Item(), new Item() }
-        });
+        // 2. Otwórz jako Dialog (blokuje główne okno)
+        bool? result = window.ShowDialog();
 
-        Collections.Add(new Collection
-        {
-            Name = "Instrumenty Muzyczne",
-            Description = "Gitary i Wzmacniacze",
-            Items = new ObservableCollection<Item> { new Item(), new Item() }
-        });
-
-        Collections.Add(new Collection
-        {
-            Name = "Modele Samochodów",
-            Description = "Skala 1:18, edycje limitowane",
-            Items = new ObservableCollection<Item> { new Item(), new Item(), new Item(), new Item(), new Item(), new Item(), new Item(), new Item(), new Item(), new Item() }
-        });
-        **/
+        // 3. Po zamknięciu odśwież listę
+        LoadCollectionsAsync();
     }
 
     private async Task LoadCollectionsAsync()
     {
         Collections.Clear();
-        var collections = await _unitOfWork.Collections.GetAllAsync();
-        foreach (var c in collections)
-            Collections.Add(c);
+        var collections = await _collectionService.GetCollectionsAsync();
+        foreach (var c in collections) Collections.Add(c);
     }
-
-
 }

@@ -1,5 +1,6 @@
 ﻿using Collectify.App.ViewModels;
 using Collectify.Data;
+using Collectify.Data.Services;
 using Collectify.Model.Interfaces;
 using System.Windows;
 
@@ -14,10 +15,22 @@ namespace Collectify.App
         {
             base.OnStartup(e);
 
-            CollectifyContext context = DbFactory.CreateContext();
+            var context = DbFactory.CreateContext();
+            context.Database.EnsureCreated();
+
             IUnitOfWork unitOfWork = new EfUnitOfWork(context);
 
-            MainWindowViewModel mainViewModel = new MainWindowViewModel(unitOfWork);
+            ICollectionService collectionService = new CollectionService(unitOfWork);
+            ITemplateService templateService = new TemplateService(unitOfWork);
+
+            var mainViewModel = new MainWindowViewModel(
+                collectionService,
+                createCollectionWindowFactory: () =>
+                {
+                    var newVm = new NewCollectionViewModel(collectionService, templateService);
+                    return new NewCollectionView(newVm);
+                }
+            );
 
             MainWindow mainWindow = new MainWindow
             {

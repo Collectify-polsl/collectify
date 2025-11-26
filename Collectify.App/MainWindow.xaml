@@ -14,7 +14,8 @@
             BorderThickness="0" Cursor="Hand"
             Background="Transparent" 
             HorizontalAlignment="Center"  
-            VerticalAlignment="Top" >
+            VerticalAlignment="Top" 
+            Command="{Binding CreateCollectionCommand}">
             <Border Background="#3F51B5" 
                 CornerRadius="20"   
                 Padding="10">
