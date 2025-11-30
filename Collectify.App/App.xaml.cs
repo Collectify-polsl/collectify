@@ -22,13 +22,22 @@ namespace Collectify.App
 
             ICollectionService collectionService = new CollectionService(unitOfWork);
             ITemplateService templateService = new TemplateService(unitOfWork);
+            IItemService itemService = new ItemService(unitOfWork);
 
             var mainViewModel = new MainWindowViewModel(
                 collectionService,
+                itemService,
+                templateService,
                 createCollectionWindowFactory: () =>
                 {
-                    var newVm = new NewCollectionViewModel(collectionService, templateService);
-                    return new NewCollectionView(newVm);
+                    var vm = new NewCollectionViewModel(collectionService, templateService);
+                    return new NewCollectionView(vm);
+                },
+                rowWizardWindowFactory: (collection) =>
+                {
+                    // Tworzymy ViewModel kreatora
+                    var vm = new RowWizardViewModel(collection, itemService, templateService);
+                    return new RowWizardView(vm);
                 }
             );
 

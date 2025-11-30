@@ -8,71 +8,72 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
 
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Window.Resources>
+
     <Grid Background="White">
 
-        <Button Width="180" Height="120" Margin="10" 
-            BorderThickness="0" Cursor="Hand"
-            Background="Transparent" 
-            HorizontalAlignment="Center"  
-            VerticalAlignment="Top" 
-            Command="{Binding CreateCollectionCommand}">
-            <Border Background="#3F51B5" 
-                CornerRadius="20"   
-                Padding="10">
-                <TextBlock Text="Create collection" 
-                       Foreground="White" 
-                       FontSize="18" 
-                       FontWeight="Bold"
-                       HorizontalAlignment="Center" 
-                       VerticalAlignment="Center"/>
-            </Border>
-        </Button>
-        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0, 120, 0, 0">
-            <ItemsControl ItemsSource="{Binding Collections}">
+        <Grid>
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Visible"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsDetailsViewVisible}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
 
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel HorizontalAlignment="Center" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
+            <Button Width="180" Height="120" Margin="10" 
+                    BorderThickness="0" Cursor="Hand"
+                    Background="Transparent" 
+                    HorizontalAlignment="Center"  
+                    VerticalAlignment="Top" 
+                    Command="{Binding CreateCollectionCommand}">
+                <Border Background="#3F51B5" CornerRadius="20" Padding="10">
+                    <TextBlock Text="Create collection" Foreground="White" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+            </Button>
 
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Button Width="180" Height="120" Margin="10" 
-        BorderThickness="0" Cursor="Hand"
-        Background="Transparent">
-                            <Border Background="#3F51B5" 
-            CornerRadius="10">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0, 120, 0, 0">
+                <ItemsControl ItemsSource="{Binding Collections}">
+
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel HorizontalAlignment="Center" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Width="180" Height="120" Margin="10" 
+                                    BorderThickness="0" Cursor="Hand" Background="Transparent"
+                                    
+                                    Command="{Binding DataContext.OpenCollectionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}">
+
+                            <Border Background="#3F51B5" CornerRadius="10">
                                 <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Margin="10">
-
-                                    <TextBlock Text="{Binding Name}"
-                       FontSize="18"
-                       FontWeight="Bold"
-                       Foreground="White" TextWrapping="Wrap"
-                       Margin="0,0,0,5"/>
-
-                                    <TextBlock Text="{Binding Description}"
-                       FontSize="12"
-                       Foreground="#BBBBBB"
-                       TextWrapping="Wrap"/>
-
-                                    <TextBlock Text="{Binding Items.Count, StringFormat='{}Elementów: {0}'}"
-                       FontSize="10"
-                       FontWeight="DemiBold"
-                       Foreground="#888888"
-                       HorizontalAlignment="Right"
-                       Margin="0,5,0,0"/>
-
+                                    <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" Margin="0,0,0,5"/>
+                                    <TextBlock Text="{Binding Description}" FontSize="12" Foreground="#BBBBBB" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{Binding Items.Count, StringFormat='{}Elementów: {0}'}" FontSize="10" FontWeight="DemiBold" Foreground="#888888" HorizontalAlignment="Right" Margin="0,5,0,0"/>
                                 </StackPanel>
                             </Border>
-                        </Button>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
 
-            </ItemsControl>
-        </ScrollViewer>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
 
+        <Grid Visibility="{Binding IsDetailsViewVisible, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
 
+            <local:SingleCollectionView DataContext="{Binding ActiveDetailsViewModel}"/>
+
+        </Grid>
 
     </Grid>
 </Window>

@@ -51,7 +51,8 @@ public class NewCollectionViewModel : INotifyPropertyChanged
     public IEnumerable<FieldType> DataTypeList { get; } = new[]
     {
         FieldType.Text,
-        FieldType.Integer
+        FieldType.Integer,
+        FieldType.Date
     };
 
     private FieldType _selectedNewColumnType = FieldType.Text;
@@ -94,7 +95,16 @@ public class NewCollectionViewModel : INotifyPropertyChanged
     }
 
     // --- LOGIKA ---
-    private bool CanAddColumn() => !string.IsNullOrWhiteSpace(NewColumnName);
+    private bool CanAddColumn()
+    {
+        if (string.IsNullOrWhiteSpace(NewColumnName))
+            return false;
+
+        bool isDuplicate = AddedColumns.Any(c =>
+            c.Name.Trim().Equals(NewColumnName.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        return !isDuplicate;
+    }
 
     private void AddColumn()
     {
@@ -143,8 +153,6 @@ public class NewCollectionViewModel : INotifyPropertyChanged
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
-    private void AddColumnCommand_RaiseCanExecuteChanged() =>
-           (AddColumnCommand as AsyncRelayCommand).RaiseCanExecuteChanged();
 
     protected void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

@@ -15,7 +15,7 @@ namespace Collectify.App
     /// <summary>
     /// Interaction logic for SingleCollectionView.xaml
     /// </summary>
-    public partial class SingleCollectionView : Window
+    public partial class SingleCollectionView : UserControl
     {
         public SingleCollectionView()
         {

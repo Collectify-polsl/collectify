@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Collectify.App.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows;
@@ -12,14 +13,13 @@ using System.Windows.Shapes;
 
 namespace Collectify.App
 {
-    /// <summary>
-    /// Interaction logic for RowWizardView.xaml
-    /// </summary>
     public partial class RowWizardView : Window
     {
-        public RowWizardView()
+        public RowWizardView(RowWizardViewModel viewModel)
         {
             InitializeComponent();
+            DataContext = viewModel;
+            viewModel.CloseAction = () => this.Close();
         }
     }
 }
