@@ -1,0 +1,78 @@
+﻿<Window x:Class="Collectify.App.RowWizardView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Collectify.App"
+        mc:Ignorable="d"
+        Title="RowWizardView" Height="200" Width="800">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="20" />
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="150"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBox Grid.Column="0"
+             Text="{Binding CurrentCellValue}"
+             VerticalContentAlignment="Center"
+             Padding="5"
+             ToolTip="Type value"/>
+            <ComboBox Grid.Column="2"
+              ItemsSource="{Binding ColumnNames}"
+              SelectedItem="{Binding SelectedColumn}"
+              Padding="5"
+              VerticalAlignment="Center">
+                <ComboBox.Style>
+                    <Style TargetType="ComboBox">
+                        <Setter Property="IsEditable" Value="False"/>
+                        <Style.Triggers>
+                            <Trigger Property="SelectedItem" Value="{x:Null}">
+                                <Setter Property="Text" Value="Choose Column .." />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </ComboBox.Style>
+            </ComboBox>
+            <Button Grid.Column="4"
+            Content="Set Value"
+            Command="{Binding UpdateCellCommand}"
+            Padding="10,5"
+            FontWeight="SemiBold"/>
+            <Button Grid.Column="6"
+            Content="Submit Row"
+            Command="{Binding SubmitRowCommand}"
+            Padding="15,5"
+            Background="#DDFFDD"
+            BorderBrush="#99CC99"/>
+        </Grid>
+        <GroupBox Grid.Row="2" Header="View of Row">
+            <DataGrid ItemsSource="{Binding NewRowPreview}"
+                  AutoGenerateColumns="True"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  IsReadOnly="True"
+                  HeadersVisibility="Column"
+                  ColumnWidth="*"
+                  VerticalScrollBarVisibility="Auto" >
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="FontWeight" Value="Bold"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                        <Setter Property="Padding" Value="5"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+            </DataGrid>
+        </GroupBox>
+
+    </Grid>
+</Window>
