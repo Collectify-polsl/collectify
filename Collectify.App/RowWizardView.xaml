@@ -25,6 +25,7 @@
                   
                   HeadersVisibility="Column"
                   ColumnWidth="*"
+                  MinColumnWidth="120"
                   VerticalScrollBarVisibility="Auto"
                   
                   SelectionUnit="Cell" >
