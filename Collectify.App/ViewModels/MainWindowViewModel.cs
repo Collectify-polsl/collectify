@@ -38,6 +38,7 @@ public class MainWindowViewModel: INotifyPropertyChanged
     public ICommand CreateCollectionCommand { get; }
     public ICommand OpenCollectionCommand { get; }
 
+
     public MainWindowViewModel(
         ICollectionService collectionService,
         IItemService itemService,
@@ -55,12 +56,9 @@ public class MainWindowViewModel: INotifyPropertyChanged
 
         LoadCollectionsCommand = new AsyncRelayCommand(LoadCollectionsAsync);
         CreateCollectionCommand = new RelayCommand(OpenCreateCollectionWindow);
-
         OpenCollectionCommand = new RelayCommand<Collection>(OpenDetailsView);
-
         LoadCollectionsAsync();
     }
-
     private void OpenCreateCollectionWindow()
     {
         var window = _createCollectionWindowFactory();
@@ -73,11 +71,25 @@ public class MainWindowViewModel: INotifyPropertyChanged
     {
         if (collection == null) return;
 
-        var detailsVM = new SingleCollectionViewModel(collection, _itemService, _templateService, _rowWizardWindowFactory);
+        var detailsVM = new SingleCollectionViewModel(collection, _itemService, _templateService, _collectionService, _rowWizardWindowFactory);
 
         detailsVM.NavigateBackAction = () =>
         {
             ActiveDetailsViewModel = null;
+        };
+        detailsVM.SwitchCollectionAction = async (newCollectionId) =>
+        {
+            // Pobieramy wszystkie kolekcje
+            var allCollections = await _collectionService.GetCollectionsAsync();
+
+            // Znajdujemy obiekt Collection na podstawie unikalnego Id
+            var newCollection = allCollections.FirstOrDefault(c => c.Id == newCollectionId);
+
+            if (newCollection != null)
+            {
+                // Otwieramy nowy widok szczegółów
+                OpenDetailsView(newCollection);
+            }
         };
 
         ActiveDetailsViewModel = detailsVM;

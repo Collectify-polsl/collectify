@@ -17,10 +17,12 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     private readonly Collection _currentCollection;
     private readonly IItemService _itemService;
     private readonly ITemplateService _templateService;
+    private readonly ICollectionService _collectionService;
     private readonly Func<Collection, Window> _rowWizardFactory;
 
-    // --- BINDINGI ---
-    public ObservableCollection<string> CollectionList { get; } = new();
+    // Klasa pomocnicza dla ComboBoxa
+    public record CollectionDisplayItem(int Id, string Name);
+    public ObservableCollection<CollectionDisplayItem> CollectionList { get; } = new();
 
     private DataView _dynamicTable;
     public DataView DynamicTable
@@ -28,9 +30,27 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         get => _dynamicTable;
         set { _dynamicTable = value; OnPropertyChanged(); }
     }
+    private CollectionDisplayItem? _selectedCollectionItem;
+    public CollectionDisplayItem? SelectedCollectionItem
+    {
+        get => _selectedCollectionItem;
+        set
+        {
+            if (_selectedCollectionItem == value) return;
+            _selectedCollectionItem= value;
+            OnPropertyChanged();
+
+            // Jeśli wybrano nową kolekcję (różną od aktualnej), wywołaj akcję przełączenia
+            if (value != null && value.Id != _currentCollection.Id)
+            {
+                SwitchCollectionAction?.Invoke(value.Id);
+            }
+        }
+    }
 
     public ICommand AddNewElementCommand { get; }
     public ICommand ReturnCollectionsViewCommand { get; }
+    public Action<int>? SwitchCollectionAction { get; set; }
     public Action? NavigateBackAction { get; set; }
 
     // --- KONSTRUKTOR ---
@@ -38,20 +58,24 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         Collection collection,
         IItemService itemService,
         ITemplateService templateService,
+        ICollectionService collectionService,
         Func<Collection, Window> rowWizardFactory)
     {
         _currentCollection = collection;
         _itemService = itemService;
         _templateService = templateService;
-        _rowWizardFactory = rowWizardFactory;
+        _collectionService = collectionService;
 
-        CollectionList.Add(_currentCollection.Name);
+        _rowWizardFactory = rowWizardFactory;
+        _selectedCollectionItem = new CollectionDisplayItem(_currentCollection.Id, _currentCollection.Name);
+
 
         ReturnCollectionsViewCommand = new RelayCommand(() => NavigateBackAction?.Invoke());
         AddNewElementCommand = new RelayCommand(OpenNewElementCreator);
 
         // Uruchamiamy ładowanie danych przy starcie
         LoadDataAsync();
+        LoadCollectionListAsync();
     }
 
     // --- LOGIKA AKCJI ---
@@ -113,7 +137,23 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
             MessageBox.Show($"Błąd ładowania danych: {ex.Message}");
         }
     }
+    private async Task LoadCollectionListAsync()
+    {
+        try
+        {
+            var allCollections = await _collectionService.GetCollectionsAsync(); // Używamy serwisu
 
+            CollectionList.Clear();
+            foreach (var collection in allCollections.OrderBy(c => c.Name))
+            {
+                CollectionList.Add(new CollectionDisplayItem(collection.Id, collection.Name));
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Błąd ładowania listy kolekcji: {ex.Message}");
+        }
+    }
     // --- METODY POMOCNICZE ---
 
     // Mapuje Enum FieldType na typ .NET
@@ -123,7 +163,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         {
             FieldType.Integer => typeof(int),
             FieldType.Decimal => typeof(decimal),
-            FieldType.Date => typeof(DateTime),
+            FieldType.Date => typeof(string),
             FieldType.ItemReference => typeof(int),
             FieldType.Image => typeof(byte[]),
             FieldType.Text => typeof(string),
@@ -140,7 +180,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         {
             FieldType.Integer => value.IntValue,
             FieldType.Decimal => value.DecimalValue,
-            FieldType.Date => value.DateValue,
+            FieldType.Date => value.DateValue?.ToString("dd'/'MM'/'yyyy"),
             FieldType.ItemReference => value.RelatedItemId,
             FieldType.Image => value.ImageValue,
             FieldType.Text => value.TextValue,

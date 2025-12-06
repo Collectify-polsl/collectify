@@ -69,7 +69,7 @@ public class RowWizardViewModel : INotifyPropertyChanged
             {
                 FieldType.Integer => typeof(int),
                 FieldType.Decimal => typeof(decimal),
-                FieldType.Date => typeof(DateTime),
+                FieldType.Date => typeof(DateOnly),
                 _ => typeof(string)
             };
 
@@ -117,7 +117,11 @@ public class RowWizardViewModel : INotifyPropertyChanged
                         input.DecimalValue = (decimal)cellValue;
                         break;
                     case FieldType.Date:
-                        input.DateValue = (DateTime)cellValue;
+                        var dateOnly = (DateOnly)cellValue;
+
+                        // Konwersja na DateTime z domyślną godziną 00:00:00 (TimeOnly.MinValue)
+                        // Wymagane, ponieważ input.DateValue jest typu DateTime.
+                        input.DateValue = dateOnly.ToDateTime(TimeOnly.MinValue);
                         break;
                     default:
                         input.TextValue = cellValue.ToString();

@@ -21,7 +21,8 @@
 
             <ComboBox Width="238"
                       ItemsSource="{Binding CollectionList}"
-                      SelectedIndex="0">
+                      SelectedItem="{Binding SelectedCollectionItem, Mode=TwoWay}"
+                      DisplayMemberPath="Name">
             </ComboBox>
 
             <Button Content="Back to Main View"
