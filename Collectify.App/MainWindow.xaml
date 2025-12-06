@@ -58,7 +58,6 @@
                                 <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Margin="10">
                                     <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" Margin="0,0,0,5"/>
                                     <TextBlock Text="{Binding Description}" FontSize="12" Foreground="#BBBBBB" TextWrapping="Wrap"/>
-                                    <TextBlock Text="{Binding Items.Count, StringFormat='{}Elementów: {0}'}" FontSize="10" FontWeight="DemiBold" Foreground="#888888" HorizontalAlignment="Right" Margin="0,5,0,0"/>
                                 </StackPanel>
                             </Border>
                             </Button>

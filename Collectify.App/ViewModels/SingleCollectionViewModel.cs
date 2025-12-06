@@ -103,7 +103,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
             // 2. Budowanie struktury tabeli
             DataTable table = new DataTable();
-            table.Columns.Add("ID", typeof(int));
+          
 
             var sortedFields = template.Fields.OrderBy(f => f.Id).ToList();
 
@@ -118,7 +118,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
             foreach (var item in items)
             {
                 DataRow row = table.NewRow();
-                row["ID"] = item.Id;
+             
 
                 foreach (var field in sortedFields)
                 {

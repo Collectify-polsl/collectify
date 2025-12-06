@@ -29,7 +29,6 @@
                     Command="{Binding ReturnCollectionsViewCommand}"
                     Padding="10,5"
                     Margin="10,0,10,0"/>
-
         </StackPanel>
 
         <DataGrid Grid.Row="1"
