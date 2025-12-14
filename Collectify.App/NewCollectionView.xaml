@@ -12,6 +12,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,20">
@@ -57,12 +58,13 @@
         <Grid Grid.Row="2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="34*"/>
+                <RowDefinition Height="125*"/>
             </Grid.RowDefinitions>
 
             <TextBlock Text="Lista zdefiniowanych kolumn:" FontWeight="SemiBold" Margin="0,0,0,5"/>
 
-            <ListView Grid.Row="1" ItemsSource="{Binding AddedColumns}" BorderThickness="1" BorderBrush="#CCCCCC">
+            <ListView Grid.Row="1" ItemsSource="{Binding AddedColumns}" BorderThickness="1" BorderBrush="#CCCCCC" Grid.RowSpan="2">
                 <ListView.View>
                     <GridView>
                         <GridViewColumn Header="Nazwa" Width="200" DisplayMemberBinding="{Binding Name}"/>
@@ -80,11 +82,36 @@
                 </ListView.View>
             </ListView>
         </Grid>
+        <Grid Grid.Row="3" Margin="0,0,0,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
 
-        <Button Grid.Row="3" Content="ZATWIERDŹ I UTWÓRZ KOLEKCJĘ" 
-                Command="{Binding SaveCollectionCommand}"
-                Height="40" Margin="0,15,0,0" 
-                Background="#007ACC" Foreground="White" FontWeight="Bold" FontSize="14"/>
+            <Button Grid.Column="0" 
+            Content=" Utwórz kolekcje " 
+            Command="{Binding SaveCollectionCommand}"
+            Height="40" Margin="0,0,10,0" 
+            Background="#007ACC" Foreground="White" FontWeight="Bold" FontSize="14" Padding="15,0"/>
+
+            <ComboBox Grid.Column="1" 
+              ItemsSource="{Binding TemplateList}"
+              Text="{Binding SelectedNewTemplate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+              Padding="5" Margin="0,0,10,0" 
+              IsEditable="True"
+              VerticalContentAlignment="Center"/>
+
+            <Button Grid.Column="2" 
+            Content=" Zapisz wzorzec kolekcji " 
+            Command="{Binding SaveCreatedTemplates}"
+            Height="40" Margin="0,0,0,0" 
+            Background="#007ACC" Foreground="White" FontWeight="Bold" FontSize="14" Padding="15,0"/>
+        </Grid>
+
+
+
+
 
     </Grid>
 </Window>
