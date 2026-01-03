@@ -6,6 +6,7 @@ using Collectify.Model.Interfaces;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
@@ -20,7 +21,6 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     private readonly ICollectionService _collectionService;
     private readonly Func<Collection, Window> _rowWizardFactory;
 
-    // Klasa pomocnicza dla ComboBoxa
     public record CollectionDisplayItem(int Id, string Name);
     public ObservableCollection<CollectionDisplayItem> CollectionList { get; } = new();
 
@@ -30,6 +30,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         get => _dynamicTable;
         set { _dynamicTable = value; OnPropertyChanged(); }
     }
+
     private CollectionDisplayItem? _selectedCollectionItem;
     public CollectionDisplayItem? SelectedCollectionItem
     {
@@ -37,10 +38,9 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         set
         {
             if (_selectedCollectionItem == value) return;
-            _selectedCollectionItem= value;
+            _selectedCollectionItem = value;
             OnPropertyChanged();
 
-            // Jeśli wybrano nową kolekcję (różną od aktualnej), wywołaj akcję przełączenia
             if (value != null && value.Id != _currentCollection.Id)
             {
                 SwitchCollectionAction?.Invoke(value.Id);
@@ -50,10 +50,11 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
     public ICommand AddNewElementCommand { get; }
     public ICommand ReturnCollectionsViewCommand { get; }
+    public ICommand DeleteCollectionCommand { get; }
+
     public Action<int>? SwitchCollectionAction { get; set; }
     public Action? NavigateBackAction { get; set; }
 
-    // --- KONSTRUKTOR ---
     public SingleCollectionViewModel(
         Collection collection,
         IItemService itemService,
@@ -65,60 +66,45 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         _itemService = itemService;
         _templateService = templateService;
         _collectionService = collectionService;
-
         _rowWizardFactory = rowWizardFactory;
-        _selectedCollectionItem = new CollectionDisplayItem(_currentCollection.Id, _currentCollection.Name);
 
+        _selectedCollectionItem = new CollectionDisplayItem(_currentCollection.Id, _currentCollection.Name);
 
         ReturnCollectionsViewCommand = new RelayCommand(() => NavigateBackAction?.Invoke());
         AddNewElementCommand = new RelayCommand(OpenNewElementCreator);
+        DeleteCollectionCommand = new RelayCommand(DeleteCollection);
 
-        // Uruchamiamy ładowanie danych przy starcie
         LoadDataAsync();
         LoadCollectionListAsync();
     }
 
-    // --- LOGIKA AKCJI ---
     private void OpenNewElementCreator()
     {
         var window = _rowWizardFactory(_currentCollection);
-
-        // Otwórz okno dialogowe
         window.ShowDialog();
-
-        // Odśwież tabelę po zamknięciu okna kreatora
         LoadDataAsync();
     }
 
-    // --- GŁÓWNA LOGIKA ŁADOWANIA DANYCH ---
     private async Task LoadDataAsync()
     {
         try
         {
-            // 1. Pobierz Szablon i Elementy (Wiersze)
             var template = await _templateService.GetTemplateAsync(_currentCollection.TemplateId, includeFields: true);
-
             if (template == null) return;
+
             var items = await _itemService.GetItemsForCollectionAsync(_currentCollection.Id);
 
-            // 2. Budowanie struktury tabeli
             DataTable table = new DataTable();
-          
-
             var sortedFields = template.Fields.OrderBy(f => f.Id).ToList();
 
-            // Kolumny Dynamiczne
             foreach (var field in sortedFields)
             {
-                Type colType = GetTypeForField(field.FieldType);
-                table.Columns.Add(field.Name, colType);
+                table.Columns.Add(field.Name, GetTypeForField(field.FieldType));
             }
 
-            // 3. Wypełnianie Wierszy
             foreach (var item in items)
             {
                 DataRow row = table.NewRow();
-             
 
                 foreach (var field in sortedFields)
                 {
@@ -129,19 +115,19 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
                 table.Rows.Add(row);
             }
 
-            // Przypisanie do widoku
             DynamicTable = table.DefaultView;
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Błąd ładowania danych: {ex.Message}");
+            MessageBox.Show($"Error loading data: {ex.Message}");
         }
     }
+
     private async Task LoadCollectionListAsync()
     {
         try
         {
-            var allCollections = await _collectionService.GetCollectionsAsync(); // Używamy serwisu
+            var allCollections = await _collectionService.GetCollectionsAsync();
 
             CollectionList.Clear();
             foreach (var collection in allCollections.OrderBy(c => c.Name))
@@ -151,27 +137,44 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Błąd ładowania listy kolekcji: {ex.Message}");
+            MessageBox.Show($"Error loading collection list: {ex.Message}");
         }
     }
-    // --- METODY POMOCNICZE ---
 
-    // Mapuje Enum FieldType na typ .NET
-    private Type GetTypeForField(FieldType type)
+    private async void DeleteCollection()
     {
-        return type switch
+        var result = MessageBox.Show(
+            $"Are you sure you want to delete the collection \"{_currentCollection.Name}\"?\nThis operation cannot be undone.",
+            "Confirm deletion",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        if (result != MessageBoxResult.Yes) return;
+
+        try
         {
-            FieldType.Integer => typeof(int),
-            FieldType.Decimal => typeof(decimal),
-            FieldType.Date => typeof(string),
-            FieldType.ItemReference => typeof(int),
-            FieldType.Image => typeof(byte[]),
-            FieldType.Text => typeof(string),
-            _ => typeof(string)
-        };
+            await _collectionService.DeleteCollectionAsync(_currentCollection.Id);
+
+            MessageBox.Show("Collection deleted successfully.", "Deleted", MessageBoxButton.OK, MessageBoxImage.Information);
+            NavigateBackAction?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error deleting collection: {ex.Message}");
+        }
     }
 
-    // Wyciąga surową wartość z obiektu FieldValue
+    private Type GetTypeForField(FieldType type) => type switch
+    {
+        FieldType.Integer => typeof(int),
+        FieldType.Decimal => typeof(decimal),
+        FieldType.Date => typeof(string),
+        FieldType.ItemReference => typeof(int),
+        FieldType.Image => typeof(byte[]),
+        FieldType.Text => typeof(string),
+        _ => typeof(string)
+    };
+
     private object? GetRawValue(FieldValue? value, FieldType type)
     {
         if (value == null) return null;
@@ -180,7 +183,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         {
             FieldType.Integer => value.IntValue,
             FieldType.Decimal => value.DecimalValue,
-            FieldType.Date => value.DateValue?.ToString("dd'/'MM'/'yyyy"),
+            FieldType.Date => value.DateValue?.ToString("dd/MM/yyyy"),
             FieldType.ItemReference => value.RelatedItemId,
             FieldType.Image => value.ImageValue,
             FieldType.Text => value.TextValue,

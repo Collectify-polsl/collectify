@@ -1,4 +1,5 @@
 ﻿using Collectify.App.Commands;
+using Collectify.App.Views;
 using Collectify.Data.Services;
 using Collectify.Model.Collection;
 using Collectify.Model.Interfaces;
@@ -38,6 +39,10 @@ public class MainWindowViewModel: INotifyPropertyChanged
     public ICommand CreateCollectionCommand { get; }
     public ICommand OpenCollectionCommand { get; }
 
+    public ICommand CreateTemplateCommand { get; }
+    public ICommand EditTemplateCommand { get; }
+
+
 
     public MainWindowViewModel(
         ICollectionService collectionService,
@@ -57,6 +62,8 @@ public class MainWindowViewModel: INotifyPropertyChanged
         LoadCollectionsCommand = new AsyncRelayCommand(LoadCollectionsAsync);
         CreateCollectionCommand = new RelayCommand(OpenCreateCollectionWindow);
         OpenCollectionCommand = new RelayCommand<Collection>(OpenDetailsView);
+        CreateTemplateCommand = new RelayCommand(OpenNewTemplateWindow);
+        EditTemplateCommand = new RelayCommand(OpenEditTemplateWindow);
         LoadCollectionsAsync();
     }
     private void OpenCreateCollectionWindow()
@@ -67,6 +74,21 @@ public class MainWindowViewModel: INotifyPropertyChanged
 
         LoadCollectionsAsync();
     }
+    private void OpenNewTemplateWindow()
+    {
+        var vm = new NewTemplateViewModel(_templateService);
+        var view = new NewTemplateView(vm);
+        view.Owner = Application.Current.MainWindow;
+        view.ShowDialog();
+    }
+    private void OpenEditTemplateWindow()
+    {
+        var vm = new EditTemplateViewModel(_templateService);
+        var view = new EditTemplateView(vm);
+
+        view.Owner = Application.Current.MainWindow;
+        view.ShowDialog();
+    }
     private void OpenDetailsView(Collection collection)
     {
         if (collection == null) return;
@@ -76,18 +98,16 @@ public class MainWindowViewModel: INotifyPropertyChanged
         detailsVM.NavigateBackAction = () =>
         {
             ActiveDetailsViewModel = null;
+            LoadCollectionsAsync();
         };
         detailsVM.SwitchCollectionAction = async (newCollectionId) =>
         {
-            // Pobieramy wszystkie kolekcje
             var allCollections = await _collectionService.GetCollectionsAsync();
 
-            // Znajdujemy obiekt Collection na podstawie unikalnego Id
             var newCollection = allCollections.FirstOrDefault(c => c.Id == newCollectionId);
 
             if (newCollection != null)
             {
-                // Otwieramy nowy widok szczegółów
                 OpenDetailsView(newCollection);
             }
         };

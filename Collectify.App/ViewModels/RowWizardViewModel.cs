@@ -19,16 +19,12 @@ public class RowWizardViewModel : INotifyPropertyChanged
     private readonly IItemService _itemService;
     private readonly ITemplateService _templateService;
 
-    // Przechowujemy definicje pól (Schema)
     private List<FieldDefinition> _fieldDefinitions = new();
-
-    // Mapa: Nazwa kolumny (z typem w nawiasie) -> FieldDefinitionId
     private Dictionary<int, string> _fieldToColumnName = new();
     private DataTable _dataTable;
 
     public Action? CloseAction { get; set; }
 
-    // --- BINDINGI ---
     private DataView _newRowPreview;
     public DataView NewRowPreview
     {
@@ -38,7 +34,6 @@ public class RowWizardViewModel : INotifyPropertyChanged
 
     public ICommand SubmitRowCommand { get; }
 
-    // --- KONSTRUKTOR ---
     public RowWizardViewModel(Collection collection, IItemService itemService, ITemplateService templateService)
     {
         _collection = collection;
@@ -61,10 +56,8 @@ public class RowWizardViewModel : INotifyPropertyChanged
 
         foreach (var field in _fieldDefinitions)
         {
-            // Tworzymy nazwę kolumny z typem (np. "Rok (Integer)")
             string headerWithInfo = $"{field.Name} ({field.FieldType})";
 
-            // NOWOŚĆ: Określamy prawdziwy typ danych dla kolumny
             Type colType = field.FieldType switch
             {
                 FieldType.Integer => typeof(int),
@@ -83,7 +76,6 @@ public class RowWizardViewModel : INotifyPropertyChanged
         NewRowPreview = _dataTable.DefaultView;
     }
 
-    // --- LOGIKA SUBMIT ---
     private async Task SubmitRowAsync()
     {
         try
@@ -94,20 +86,13 @@ public class RowWizardViewModel : INotifyPropertyChanged
             foreach (var field in _fieldDefinitions)
             {
                 string colName = _fieldToColumnName[field.Id];
-
-                // Pobieramy obiekt z komórki
                 object cellValue = row[colName];
 
-                // Pomijamy puste komórki (DBNull)
                 if (cellValue == DBNull.Value || cellValue == null || string.IsNullOrWhiteSpace(cellValue.ToString()))
                     continue;
 
-                var input = new NewItemFieldValueInput
-                {
-                    FieldDefinitionId = field.Id
-                };
+                var input = new NewItemFieldValueInput { FieldDefinitionId = field.Id };
 
-                // Typy są poprawne; wystarczy rzutowanie (casting)
                 switch (field.FieldType)
                 {
                     case FieldType.Integer:
@@ -118,32 +103,30 @@ public class RowWizardViewModel : INotifyPropertyChanged
                         break;
                     case FieldType.Date:
                         var dateOnly = (DateOnly)cellValue;
-
-                        // Konwersja na DateTime z domyślną godziną 00:00:00 (TimeOnly.MinValue)
-                        // Wymagane, ponieważ input.DateValue jest typu DateTime.
                         input.DateValue = dateOnly.ToDateTime(TimeOnly.MinValue);
                         break;
                     default:
                         input.TextValue = cellValue.ToString();
                         break;
                 }
+
                 inputs.Add(input);
             }
 
             if (inputs.Count == 0)
             {
-                MessageBox.Show("Niewłaściwy input!", "Uwaga");
+                MessageBox.Show("Invalid input!", "Warning");
                 return;
             }
 
             await _itemService.CreateItemAsync(_collection.Id, inputs, null, null);
 
-            MessageBox.Show("Dodano!", "Sukces");
+            MessageBox.Show("Item added successfully!", "Success");
             CloseAction?.Invoke();
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Błąd zapisu: {ex.Message}");
+            MessageBox.Show($"Save error: {ex.Message}");
         }
     }
 
