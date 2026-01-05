@@ -4,46 +4,130 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
+             d:DesignHeight="600" d:DesignWidth="1000">
 
-    <Grid Background="White">
+    <UserControl.Resources>
+        <Style x:Key="ActionButtonStyle" TargetType="Button">
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <DataTemplate x:Key="ImageCellTemplate">
+            <Border Width="36" Height="36" Margin="4" CornerRadius="4" 
+                    Background="#F3F4F6" ClipToBounds="True" HorizontalAlignment="Center">
+                <Image Source="{Binding .}" Stretch="UniformToFill" 
+                       RenderOptions.BitmapScalingMode="HighQuality">
+                    <Image.Style>
+                        <Style TargetType="Image">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Image.Style>
+                </Image>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Background="#F0F2F5">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10">
+        <Border Grid.Row="0" Background="White" BorderBrush="#D1D5DB" BorderThickness="0,0,0,1" Padding="15,10">
+            <DockPanel LastChildFill="False">
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                    <Button Content="← Powrót" Command="{Binding ReturnCollectionsViewCommand}"
+                            Style="{StaticResource ActionButtonStyle}" Background="#4B5563" Foreground="White" Margin="0,0,15,0"/>
+                    <TextBlock Text="Kolekcja:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#374151" Margin="0,0,10,0"/>
+                    <ComboBox Width="220" ItemsSource="{Binding CollectionList}" 
+                              SelectedItem="{Binding SelectedCollectionItem}" DisplayMemberPath="Name" 
+                              VerticalContentAlignment="Center"/>
+                </StackPanel>
 
-            <Button Content="Add New Element"
-                    Command="{Binding AddNewElementCommand}"
-                    Padding="10,5"
-                    Margin="0,0,10,0"/>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                    <Button Content="+ Dodaj Element" Command="{Binding AddNewElementCommand}"
+                            Style="{StaticResource ActionButtonStyle}" Background="#10B981" Foreground="White" Margin="0,0,10,0"/>
+                    <Button Content="Usuń Kolekcję" Command="{Binding DeleteCollectionCommand}"
+                            Style="{StaticResource ActionButtonStyle}" Background="#EF4444" Foreground="White"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
 
-            <ComboBox Width="238"
-                      ItemsSource="{Binding CollectionList}"
-                      SelectedItem="{Binding SelectedCollectionItem, Mode=TwoWay}"
-                      DisplayMemberPath="Name">
-            </ComboBox>
+        <Border Grid.Row="1" Background="White" Margin="12,12,12,0" CornerRadius="8" BorderBrush="#D1D5DB" BorderThickness="1" Padding="15">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Szukaj w:" VerticalAlignment="Center" Foreground="#6B7280" Margin="0,0,10,0"/>
+                <ComboBox Width="160" ItemsSource="{Binding ColumnNames}" SelectedItem="{Binding SelectedFilterColumn}"/>
 
-            <Button Content="Back to Main View"
-                    Command="{Binding ReturnCollectionsViewCommand}"
-                    Padding="10,5"
-                    Margin="10,0,10,0"/>
+                <TextBlock Text="Fraza:" VerticalAlignment="Center" Foreground="#6B7280" Margin="20,0,10,0"/>
+                <TextBox Width="280" Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}" Padding="8,5" BorderBrush="#D1D5DB"/>
 
-            <Button Content="Delete Collection"
-                Command="{Binding DeleteCollectionCommand}"
-                Padding="10,5"
-                Margin="10,0,0,0"
-                Background="#D32F2F"
-                Foreground="White"/>
+                <Button Content="Wyczyść" Command="{Binding ResetFilterCommand}" Margin="15,0" Background="Transparent" Foreground="#6B7280" BorderBrush="Transparent"/>
+
+                <Separator Margin="10,0" Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}"/>
+                <TextBlock Text="ⓘ Kliknij nagłówek, aby sortować" VerticalAlignment="Center" FontStyle="Italic" Foreground="#9CA3AF" FontSize="11"/>
             </StackPanel>
+        </Border>
 
-        <DataGrid Grid.Row="1"
-                  ItemsSource="{Binding DynamicTable}"
-                  AutoGenerateColumns="True"
-                  Margin="10"
-                  IsReadOnly="True">
-        </DataGrid>
+        <Border Grid.Row="2" Background="White" Margin="12" CornerRadius="8" BorderBrush="#D1D5DB" BorderThickness="1" ClipToBounds="True">
+            <DataGrid ItemsSource="{Binding DynamicTable}"
+                      AutoGenerateColumns="True"
+                      
+                      IsReadOnly="True"
+                      BorderThickness="0"
+                      GridLinesVisibility="Horizontal"
+                      HorizontalGridLinesBrush="#F3F4F6"
+                      RowHeight="45"
+                      AlternatingRowBackground="#F9FAFB"
+                      HeadersVisibility="Column"
+                      SelectionMode="Single">
+                       <!--AutoGeneratingColumn="DataGrid_OnAutoGeneratingColumn"-->
 
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Padding" Value="15,12"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Background" Value="#F9FAFB"/>
+                        <Setter Property="Foreground" Value="#4B5563"/>
+                        <Setter Property="BorderBrush" Value="#E5E7EB"/>
+                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#F3F4F6"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+
+                <DataGrid.CellStyle>
+                    <Style TargetType="DataGridCell">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="Padding" Value="10,0"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#E0F2FE"/>
+                                <Setter Property="Foreground" Value="#0369A1"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.CellStyle>
+            </DataGrid>
+        </Border>
     </Grid>
 </UserControl>
