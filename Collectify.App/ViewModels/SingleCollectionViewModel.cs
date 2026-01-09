@@ -7,9 +7,11 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace Collectify.App.ViewModels;
 
@@ -47,11 +49,45 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
             }
         }
     }
+    private int? _itemToHighlight;
+
+    // Właściwość podpięta pod SelectedItem w XAML
+    private DataRowView? _selectedRow;
+    public DataRowView? SelectedRow
+    {
+        get => _selectedRow;
+        set
+        {
+            _selectedRow = value;
+            OnPropertyChanged();
+        }
+    }
 
     public ICommand AddNewElementCommand { get; }
     public ICommand ReturnCollectionsViewCommand { get; }
     public ICommand DeleteCollectionCommand { get; }
+    // Dodaj te pola i właściwości do klasy
+    public ICommand NavigateToReferencedItemCommand { get; }
+    public ICommand OpenFullImageCommand { get; }
 
+
+    // Metoda obsługująca nawigację
+    private async void NavigateToReferencedItem(object? idObj)
+    {   /*
+        if (idObj is int itemId)
+        {
+            // Pobierz informacje o przedmiocie, aby wiedzieć do której kolekcji należy
+            var targetItem = await _itemService.GetItemByIdAsync(itemId);
+            if (targetItem != null)
+            {
+                // Wywołaj akcję zmiany kolekcji zdefiniowaną w View
+                SwitchCollectionAction?.Invoke(targetItem.CollectionId);
+
+                // Opcjonalnie: Tutaj można dodać logikę podświetlania wiersza po załadowaniu
+                MessageBox.Show($"Navigating to item in collection ID: {targetItem.CollectionId}");
+            }
+        }*/
+    }
     public Action<int>? SwitchCollectionAction { get; set; }
     public Action? NavigateBackAction { get; set; }
 
@@ -73,6 +109,8 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         ReturnCollectionsViewCommand = new RelayCommand(() => NavigateBackAction?.Invoke());
         AddNewElementCommand = new RelayCommand(OpenNewElementCreator);
         DeleteCollectionCommand = new RelayCommand(DeleteCollection);
+        NavigateToReferencedItemCommand = new RelayCommand<object>(NavigateToReferencedItem);
+        OpenFullImageCommand = new RelayCommand<object>(OpenFullImage);
 
         LoadDataAsync();
         LoadCollectionListAsync();
@@ -95,6 +133,10 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
             var items = await _itemService.GetItemsForCollectionAsync(_currentCollection.Id);
 
             DataTable table = new DataTable();
+
+            // --- ZMIANA 1: Dodajemy techniczną kolumnę Id ---
+            table.Columns.Add("Id", typeof(int));
+
             var sortedFields = template.Fields.OrderBy(f => f.Id).ToList();
 
             foreach (var field in sortedFields)
@@ -106,6 +148,9 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
             {
                 DataRow row = table.NewRow();
 
+                // --- ZMIANA 2: Przypisujemy Id przedmiotu do wiersza ---
+                row["Id"] = item.Id;
+
                 foreach (var field in sortedFields)
                 {
                     var valObj = item.FieldValues.FirstOrDefault(v => v.FieldDefinitionId == field.Id);
@@ -116,6 +161,23 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
             }
 
             DynamicTable = table.DefaultView;
+
+            // --- ZMIANA 3: Logika szukania i podświetlania wiersza ---
+            if (_itemToHighlight.HasValue)
+            {
+                // Przeszukujemy nowo załadowaną tabelę
+                foreach (DataRowView rowView in DynamicTable)
+                {
+                    if (Convert.ToInt32(rowView["Id"]) == _itemToHighlight.Value)
+                    {
+                        // Ustawiamy SelectedRow – to spowoduje podświetlenie w DataGrid (przez Binding)
+                        SelectedRow = rowView;
+                        break;
+                    }
+                }
+                // Czyścimy ID, żeby przy kolejnym (zwykłym) wejściu nie podświetlało nic starego
+                _itemToHighlight = null;
+            }
         }
         catch (Exception ex)
         {
@@ -194,4 +256,51 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    private void OpenFullImage(object? parameter)
+    {
+        byte[]? imageData = null;
+
+        // Przypadek 1: Parametr to bezpośrednio bajty
+        if (parameter is byte[] bytes)
+        {
+            imageData = bytes;
+        }
+        // Przypadek 2: Parametr to wiersz (częste w DataGridTemplateColumn)
+        else if (parameter is DataRowView rowView)
+        {
+            // Tutaj musimy wiedzieć, w której kolumnie jest obrazek. 
+            // Jeśli nie znamy nazwy, szukamy pierwszej kolumny typu byte[]
+            foreach (DataColumn col in rowView.Row.Table.Columns)
+            {
+                if (col.DataType == typeof(byte[]))
+                {
+                    imageData = rowView[col.ColumnName] as byte[];
+                    break;
+                }
+            }
+        }
+
+        if (imageData == null || imageData.Length == 0) return;
+
+        // Tworzenie okna (Twój kod jest OK)
+        var window = new Window
+        {
+            Title = "View Image",
+            WindowStartupLocation = WindowStartupLocation.CenterScreen,
+            SizeToContent = SizeToContent.WidthAndHeight,
+            Background = Brushes.Black
+        };
+
+        var imageControl = new System.Windows.Controls.Image
+        {
+            Source = new BytesToImageConverter().Convert(imageData, typeof(ImageSource), null, System.Globalization.CultureInfo.CurrentCulture) as ImageSource,
+            Stretch = Stretch.Uniform,
+            MaxWidth = 1000,
+            MaxHeight = 800
+        };
+
+        imageControl.MouseDown += (s, e) => window.Close();
+        window.Content = imageControl;
+        window.ShowDialog();
+    }
 }

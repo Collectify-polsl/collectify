@@ -5,7 +5,30 @@
         Height="500"
         Width="650"
         WindowStartupLocation="CenterOwner">
+    <Window.Resources>
+        <Style x:Key="SaveButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#007ACC"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                            CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                          VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
 
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Foreground" Value="Black"/>
+                    <Setter Property="Background" Value="#CCCCCC"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -72,14 +95,30 @@
             </ListView.View>
         </ListView>
 
-        <!-- Zapis -->
-        <Button Grid.Row="3"
-                Content="Save Template"
-                Command="{Binding SaveTemplateCommand}"
-                Height="40"
-                Width="180"
-                HorizontalAlignment="Right"
-                Background="#007ACC"
-                Foreground="White"/>
+        <StackPanel Grid.Row="3" HorizontalAlignment="Right">
+            <TextBlock Foreground="DarkRed" 
+               FontSize="11" 
+               Margin="0,0,0,5" 
+               HorizontalAlignment="Right"
+               Text="To save the template, add at least one field and set template name.">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsEnabled, ElementName=SaveButton}" Value="False">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+            <Button x:Name="SaveButton"
+            Content="Save Template"
+            Style="{StaticResource SaveButtonStyle}"
+            Command="{Binding SaveTemplateCommand}"
+            Height="40"
+            Width="180"/>
+        </StackPanel>
     </Grid>
 </Window>

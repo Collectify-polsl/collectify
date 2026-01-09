@@ -22,6 +22,8 @@ public class EditTemplateViewModel : INotifyPropertyChanged
     // List of all templates
     public ObservableCollection<Template> TemplateList { get; } = new();
     private Template? _selectedTemplate;
+
+    private string _templateName = string.Empty;
     public Template? SelectedTemplate
     {
         get => _selectedTemplate;
@@ -30,22 +32,39 @@ public class EditTemplateViewModel : INotifyPropertyChanged
             _selectedTemplate = value;
             OnPropertyChanged();
             LoadTemplateFields();
+
+            // Powiadom komendy o zmianie
+            (SaveTemplateCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+            (DeleteTemplateCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
         }
     }
 
-    // Template name
-    private string _templateName = string.Empty;
     public string TemplateName
     {
         get => _templateName;
-        set { _templateName = value; OnPropertyChanged(); }
+        set
+        {
+            _templateName = value;
+            OnPropertyChanged();
+
+            // Powiadom komendę zapisu o zmianie nazwy
+            (SaveTemplateCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+        }
     }
 
     // Fields of the template
     public ObservableCollection<ColumnItem> Columns { get; } = new();
 
     // Add field
-    public ObservableCollection<FieldType> DataTypeList { get; } = new() { FieldType.Text, FieldType.Integer, FieldType.Date };
+    public ObservableCollection<FieldType> DataTypeList { get; } = new()
+    {
+        FieldType.Text,
+        FieldType.Integer,
+        FieldType.Decimal,
+        FieldType.Date,
+        FieldType.Image,
+        FieldType.ItemReference
+    };
     private string _newColumnName = string.Empty;
     public string NewColumnName { get => _newColumnName; set { _newColumnName = value; OnPropertyChanged(); } }
     private FieldType _selectedFieldType = FieldType.Text;

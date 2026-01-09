@@ -1,25 +1,37 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
-namespace Collectify.App
+namespace Collectify.App;
+
+public partial class SingleCollectionView : UserControl
 {
-    /// <summary>
-    /// Interaction logic for SingleCollectionView.xaml
-    /// </summary>
-    public partial class SingleCollectionView : UserControl
+    public SingleCollectionView()
     {
-        public SingleCollectionView()
+        InitializeComponent();
+    }
+
+    private void DataGrid_OnAutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
+    {
+        if (e.PropertyName == "Id")
         {
-            InitializeComponent();
+            e.Cancel = true;
+            return;
+        }
+        if (e.PropertyType == typeof(byte[]))
+        {
+            e.Column = new DataGridTemplateColumn
+            {
+                Header = e.Column.Header,
+                CellTemplate = (DataTemplate)Resources["ImageCellTemplate"]
+            };
+        }
+        else if (e.PropertyType == typeof(int))
+        {
+            e.Column = new DataGridTemplateColumn
+            {
+                Header = e.Column.Header,
+                CellTemplate = (DataTemplate)Resources["ReferenceCellTemplate"]
+            };
         }
     }
 }

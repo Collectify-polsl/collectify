@@ -44,8 +44,15 @@ public class NewTemplateViewModel : INotifyPropertyChanged
         }
     }
 
-    public ObservableCollection<FieldType> DataTypeList { get; }
-        = new() { FieldType.Text, FieldType.Integer, FieldType.Date };
+    public ObservableCollection<FieldType> DataTypeList { get; } = new()
+    {
+        FieldType.Text,
+        FieldType.Integer,
+        FieldType.Decimal,
+        FieldType.Date,
+        FieldType.Image,
+        FieldType.ItemReference
+    };
 
     private FieldType _selectedFieldType = FieldType.Text;
     public FieldType SelectedFieldType

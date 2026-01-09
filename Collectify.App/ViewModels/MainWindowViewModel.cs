@@ -1,6 +1,7 @@
 ﻿using Collectify.App.Commands;
 using Collectify.App.Views;
 using Collectify.Data.Services;
+using System.Windows.Controls;
 using Collectify.Model.Collection;
 using Collectify.Model.Interfaces;
 using System.Collections.ObjectModel;

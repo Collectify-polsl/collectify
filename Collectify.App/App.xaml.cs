@@ -36,7 +36,7 @@ namespace Collectify.App
                 rowWizardWindowFactory: (collection) =>
                 {
                     // Tworzymy ViewModel kreatora
-                    var vm = new RowWizardViewModel(collection, itemService, templateService);
+                    var vm = new RowWizardViewModel(collection, itemService, templateService,collectionService);
                     return new RowWizardView(vm);
                 }
             );

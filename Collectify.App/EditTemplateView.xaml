@@ -5,104 +5,130 @@
         Height="520"
         Width="650"
         WindowStartupLocation="CenterOwner">
+    <Window.Resources>
+        <ControlTemplate x:Key="FlatButtonTemplate" TargetType="Button">
+            <Border Background="{TemplateBinding Background}" CornerRadius="3">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+        </ControlTemplate>
+
+        <Style x:Key="DeleteButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#D32F2F"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Template" Value="{StaticResource FlatButtonTemplate}"/>
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Foreground" Value="Black"/>
+                    <Setter Property="Background" Value="#CCCCCC"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SaveButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#007ACC"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Template" Value="{StaticResource FlatButtonTemplate}"/>
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Foreground" Value="Black"/>
+                    <Setter Property="Background" Value="#CCCCCC"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <!-- Template selection -->
-            <RowDefinition Height="Auto"/>
-            <!-- Template name -->
-            <RowDefinition Height="Auto"/>
-            <!-- Add Field -->
             <RowDefinition Height="*"/>
-            <!-- Fields List -->
-            <RowDefinition Height="Auto"/>
-            <!-- Buttons -->
         </Grid.RowDefinitions>
 
-        <!-- Template Selection -->
         <StackPanel Grid.Row="0" Margin="0,0,0,10">
             <TextBlock Text="Select Template" FontWeight="Bold"/>
             <ComboBox ItemsSource="{Binding TemplateList}"
-                      SelectedItem="{Binding SelectedTemplate}"
-                      DisplayMemberPath="Name"
-                      Padding="5"/>
+                  SelectedItem="{Binding SelectedTemplate}"
+                  DisplayMemberPath="Name"
+                  Padding="5"/>
         </StackPanel>
 
-        <!-- Template Name -->
-        <StackPanel Grid.Row="1" Margin="0,0,0,10">
-            <TextBlock Text="Template Name" FontWeight="Bold"/>
-            <TextBox Text="{Binding TemplateName, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
-        </StackPanel>
+        <Grid Grid.Row="1">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="IsEnabled" Value="True"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding SelectedTemplate}" Value="{x:Null}">
+                            <Setter Property="IsEnabled" Value="False"/>
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
 
-        <!-- Add Field -->
-        <GroupBox Header="Add Field" Grid.Row="2" Margin="0,0,0,10">
-            <Grid Margin="10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2*"/>
-                    <ColumnDefinition Width="1.5*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-                <TextBox Grid.Column="0"
-                         Text="{Binding NewColumnName}"
-                         Padding="5"/>
+            <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                <TextBlock Text="Template Name" FontWeight="Bold"/>
+                <TextBox Text="{Binding TemplateName, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
+            </StackPanel>
 
-                <ComboBox Grid.Column="1"
-                          ItemsSource="{Binding DataTypeList}"
-                          SelectedItem="{Binding SelectedFieldType}"
-                          Margin="10,0"
-                          Padding="5"/>
+            <GroupBox Header="Add Field" Grid.Row="1" Margin="0,0,0,10">
+                <Grid Margin="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="1.5*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0" Text="{Binding NewColumnName, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding DataTypeList}" SelectedItem="{Binding SelectedFieldType}" Margin="10,0" Padding="5"/>
+                    <Button Grid.Column="2" Content="Add" Command="{Binding AddColumnCommand}" Padding="15,5"/>
+                </Grid>
+            </GroupBox>
 
-                <Button Grid.Column="2"
-                        Content="Add"
-                        Command="{Binding AddColumnCommand}"
-                        Padding="15,5"/>
-            </Grid>
-        </GroupBox>
-
-        <!-- Fields List -->
-        <ListView Grid.Row="3" ItemsSource="{Binding Columns}" Margin="0,0,0,10">
-            <ListView.View>
-                <GridView>
-                    <GridViewColumn Header="Name" Width="250"
-                                    DisplayMemberBinding="{Binding Name}"/>
-                    <GridViewColumn Header="Type" Width="150">
-                        <GridViewColumn.CellTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding DataType}"/>
-                            </DataTemplate>
-                        </GridViewColumn.CellTemplate>
-                    </GridViewColumn>
-                    <GridViewColumn Header="Action" Width="80">
-                        <GridViewColumn.CellTemplate>
-                            <DataTemplate>
-                                <Button Content="Remove"
-                                        Foreground="Red"
-                                        Command="{Binding DataContext.RemoveColumnCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+            <ListView Grid.Row="2" ItemsSource="{Binding Columns}" Margin="0,0,0,10">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="Name" Width="250" DisplayMemberBinding="{Binding Name}"/>
+                        <GridViewColumn Header="Type" Width="150" DisplayMemberBinding="{Binding DataType}"/>
+                        <GridViewColumn Header="Action" Width="80">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="Remove" Foreground="Red" 
+                                        Command="{Binding DataContext.RemoveColumnCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
                                         CommandParameter="{Binding}"/>
-                            </DataTemplate>
-                        </GridViewColumn.CellTemplate>
-                    </GridViewColumn>
-                </GridView>
-            </ListView.View>
-        </ListView>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView>
+                </ListView.View>
+            </ListView>
 
-        <!-- Buttons -->
-        <StackPanel Grid.Row="4"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Right">
-            <Button Content="Delete Template"
-                    Command="{Binding DeleteTemplateCommand}"
-                    Background="#D32F2F"
-                    Foreground="White"
-                    Padding="15,5"
-                    Margin="0,0,10,0"/>
-            <Button Content="Save Changes"
-                    Command="{Binding SaveTemplateCommand}"
-                    Background="#007ACC"
-                    Foreground="White"
-                    Padding="15,5"/>
-        </StackPanel>
+            <StackPanel Grid.Row="3" HorizontalAlignment="Right">
+                <TextBlock FontSize="11" Foreground="DarkRed" Margin="0,0,0,5" HorizontalAlignment="Right"
+                       Text="Add at least one field and set name to save.">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsEnabled, ElementName=SaveBtn}" Value="False">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="DeleteBtn" Content="Delete Template" Command="{Binding DeleteTemplateCommand}" 
+                        Style="{StaticResource DeleteButtonStyle}" Margin="0,0,10,0" Height="35" Width="126"/>
+                    <Button x:Name="SaveBtn" Content="Save Changes" Command="{Binding SaveTemplateCommand}" 
+                        Style="{StaticResource SaveButtonStyle}" Height="35" Width="118"/>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>

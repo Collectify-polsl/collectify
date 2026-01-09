@@ -1,25 +1,37 @@
 ﻿using Collectify.App.ViewModels;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
-namespace Collectify.App
+namespace Collectify.App;
+
+public partial class RowWizardView : Window
 {
-    public partial class RowWizardView : Window
+    public RowWizardView(RowWizardViewModel vm)
     {
-        public RowWizardView(RowWizardViewModel viewModel)
+        InitializeComponent();
+        DataContext = vm;
+        vm.CloseAction = Close;
+    }
+
+    private void DataGrid_OnAutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
+    {
+        string header = e.Column.Header.ToString() ?? "";
+
+        if (header.Contains("(Image)"))
         {
-            InitializeComponent();
-            DataContext = viewModel;
-            viewModel.CloseAction = () => this.Close();
+            e.Column = new DataGridTemplateColumn
+            {
+                Header = e.Column.Header,
+                CellTemplate = (DataTemplate)Resources["ImageCellTemplate"]
+            };
+        }
+        else if (header.Contains("(ItemReference)"))
+        {
+            e.Column = new DataGridTemplateColumn
+            {
+                Header = e.Column.Header,
+                CellTemplate = (DataTemplate)Resources["ReferenceCellTemplate"]
+            };
         }
     }
 }
