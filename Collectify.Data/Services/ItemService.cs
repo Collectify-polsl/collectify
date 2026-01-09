@@ -104,6 +104,19 @@ public class ItemService : IItemService
         return query.ToList();
     }
 
+    public async Task<Item?> GetItemAsync(int itemId, bool includeFieldValues = false, CancellationToken cancellationToken = default)
+    {
+        Item? item = await _unitOfWork.Items.GetByIdAsync(itemId, cancellationToken);
+
+        if (item is not null && includeFieldValues)
+        {
+            var values = await _unitOfWork.FieldValues.FindAsync(v => v.ItemId == itemId, cancellationToken);
+            item.FieldValues = values.ToList();
+        }
+
+        return item;
+    }
+
     public async Task<Item> UpdateItemAsync(int itemId, IReadOnlyList<NewItemFieldValueInput> fieldValues, int? previousItemId, int? nextItemId,
         CancellationToken cancellationToken = default)
     {
