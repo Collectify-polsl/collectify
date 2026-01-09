@@ -21,6 +21,11 @@ public interface IItemService
         bool descending = false, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Returns a single item by its identifier.
+    /// </summary>
+    Task<Item?> GetItemAsync(int itemId, bool includeFieldValues = false, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Replaces all field values of the item with the provided ones.
     /// </summary>
     Task<Item> UpdateItemAsync(int itemId, IReadOnlyList<NewItemFieldValueInput> fieldValues, int? previousItemId, int? nextItemId,
