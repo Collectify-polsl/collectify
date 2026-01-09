@@ -97,13 +97,17 @@ public class RowWizardViewModel : INotifyPropertyChanged
     private void OpenReferencePicker(string? columnName)
     {
         if (string.IsNullOrEmpty(columnName)) return;
-
+       
         var picker = new ReferencePickerWindow(ItemsByCollectionMap);
         picker.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
 
         if (picker.ShowDialog() == true)
         {
-            _dataTable.Rows[0][columnName] = picker.SelectedItemId;
+            var row = _dataTable.Rows[0];
+            row.BeginEdit();
+            row[columnName] = picker.SelectedItemId;
+            row.EndEdit();
+
             OnPropertyChanged(nameof(NewRowPreview));
         }
     }

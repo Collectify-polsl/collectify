@@ -1,4 +1,5 @@
 ﻿using Collectify.App.Commands;
+using Collectify.App.Converters;
 using Collectify.Model.Collection;
 using Collectify.Model.Entities;
 using Collectify.Model.Enums;
@@ -10,6 +11,7 @@ using System.Linq;
 using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 
@@ -22,7 +24,12 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     private readonly ITemplateService _templateService;
     private readonly ICollectionService _collectionService;
     private readonly Func<Collection, Window> _rowWizardFactory;
-
+    private bool _isPopupView;
+    public bool IsPopupView
+    {
+        get => _isPopupView;
+        set { _isPopupView = value; OnPropertyChanged(); }
+    }
     public record CollectionDisplayItem(int Id, string Name);
     public ObservableCollection<CollectionDisplayItem> CollectionList { get; } = new();
 
@@ -71,23 +78,8 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     public ICommand OpenFullImageCommand { get; }
 
 
-    // Metoda obsługująca nawigację
-    private async void NavigateToReferencedItem(object? idObj)
-    {   /*
-        if (idObj is int itemId)
-        {
-            // Pobierz informacje o przedmiocie, aby wiedzieć do której kolekcji należy
-            var targetItem = await _itemService.GetItemByIdAsync(itemId);
-            if (targetItem != null)
-            {
-                // Wywołaj akcję zmiany kolekcji zdefiniowaną w View
-                SwitchCollectionAction?.Invoke(targetItem.CollectionId);
-
-                // Opcjonalnie: Tutaj można dodać logikę podświetlania wiersza po załadowaniu
-                MessageBox.Show($"Navigating to item in collection ID: {targetItem.CollectionId}");
-            }
-        }*/
-    }
+    
+    public record ReferenceValue(int Id);
     public Action<int>? SwitchCollectionAction { get; set; }
     public Action? NavigateBackAction { get; set; }
 
@@ -122,7 +114,59 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         window.ShowDialog();
         LoadDataAsync();
     }
+    private async void NavigateToReferencedItem(object? parameter)
+    {
+        if (parameter is not DataGridCell cell) return;
 
+        if (cell.DataContext is DataRowView rowView)
+        {
+            string columnName = cell.Column.SortMemberPath;
+            object cellValue = rowView[columnName];
+
+            if (cellValue?.GetType().Name == "ReferenceValue")
+            {
+                dynamic dynamicRef = cellValue;
+                int itemId = dynamicRef.Id;
+
+                if (itemId > 0)
+                {
+                    // 1. Pobieramy przedmiot i jego kolekcję
+                    var targetItem = await _itemService.GetItemAsync(itemId);
+                    if (targetItem == null) return;
+
+                    var targetCollection = await _collectionService.GetCollectionAsync(targetItem.CollectionId);
+                    if (targetCollection == null) return;
+
+
+                    // 2. Tworzymy nowy ViewModel dla tej kolekcji
+                    var newVm = new SingleCollectionViewModel(
+                        targetCollection,
+                        _itemService,
+                        _templateService,
+                        _collectionService,
+                        _rowWizardFactory);
+
+                    // 3. Przekazujemy ID do podświetlenia w nowym oknie
+                    newVm._itemToHighlight = itemId;
+                    newVm.IsPopupView = true;
+
+                    // 4. Tworzymy nowe okno
+                    var window = new Window
+                    {
+                        Title = $"Collection: {targetCollection.Name}",
+                        Width = 600, // Nieco szersze, żeby wygodnie oglądać tabelę
+                        Height = 400,
+                        Content = new SingleCollectionView { DataContext = newVm },
+                        WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                        Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F0F2F5"))
+                    };
+
+                    // 5. Wyświetlamy okno
+                    window.Show();
+                }
+            }
+        }
+    }
     private async Task LoadDataAsync()
     {
         try
@@ -226,33 +270,37 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         }
     }
 
-    private Type GetTypeForField(FieldType type) => type switch
+    private Type GetTypeForField(FieldType type)
     {
-        FieldType.Integer => typeof(int),
-        FieldType.Decimal => typeof(decimal),
-        FieldType.Date => typeof(string),
-        FieldType.ItemReference => typeof(int),
-        FieldType.Image => typeof(byte[]),
-        FieldType.Text => typeof(string),
-        _ => typeof(string)
-    };
+        // Obrazek musi zostać byte[], żeby szablony go rozpoznawały
+        if (type == FieldType.Image) return typeof(byte[]);
+
+        // Dla pozostałych typów (Integer, Decimal, Reference) używamy object
+        // To pozwoli nam wstawić "-" tam, gdzie normalnie byłaby liczba
+        return typeof(object);
+    }
 
     private object? GetRawValue(FieldValue? value, FieldType type)
     {
-        if (value == null) return null;
+        if (type == FieldType.Image) return value?.ImageValue;
+        if (value == null) return "-";
 
-        return type switch
+        object? result = type switch
         {
             FieldType.Integer => value.IntValue,
             FieldType.Decimal => value.DecimalValue,
             FieldType.Date => value.DateValue?.ToString("dd/MM/yyyy"),
-            FieldType.ItemReference => value.RelatedItemId,
-            FieldType.Image => value.ImageValue,
+            // ZAMIANA: Zamiast int, zwracamy specjalny obiekt
+            FieldType.ItemReference => value.RelatedItemId.HasValue
+                                       ? new ReferenceValue(value.RelatedItemId.Value)
+                                       : null,
             FieldType.Text => value.TextValue,
-            _ => value.TextValue
+            _ => null
         };
-    }
 
+        return result ?? "-";
+    }
+    
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

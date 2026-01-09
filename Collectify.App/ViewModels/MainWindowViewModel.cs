@@ -109,7 +109,7 @@ public class MainWindowViewModel: INotifyPropertyChanged
 
             if (newCollection != null)
             {
-                OpenDetailsView(newCollection);
+                System.Windows.Application.Current.Dispatcher.Invoke(() => OpenDetailsView(newCollection));
             }
         };
 

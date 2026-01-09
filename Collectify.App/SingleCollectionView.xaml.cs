@@ -1,5 +1,8 @@
-﻿using System.Windows;
+﻿using System;
+using System.Data;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 
 namespace Collectify.App;
 
@@ -17,21 +20,74 @@ public partial class SingleCollectionView : UserControl
             e.Cancel = true;
             return;
         }
-        if (e.PropertyType == typeof(byte[]))
+
+        // Pobieramy dostęp do struktury tabeli
+        var grid = sender as DataGrid;
+        var dataView = grid?.ItemsSource as DataView;
+        var table = dataView?.Table;
+
+        if (table != null && table.Columns.Contains(e.PropertyName))
         {
-            e.Column = new DataGridTemplateColumn
+            var columnType = table.Columns[e.PropertyName].DataType;
+
+            // 1. Sprawdzenie obrazka
+            if (columnType == typeof(byte[]))
             {
-                Header = e.Column.Header,
-                CellTemplate = (DataTemplate)Resources["ImageCellTemplate"]
-            };
+                e.Column = new DataGridTemplateColumn
+                {
+                    Header = e.Column.Header,
+                    CellTemplate = (DataTemplate)Resources["ImageCellTemplate"],
+                    SortMemberPath = e.PropertyName
+                };
+                return;
+            }
+
+            // 2. PEWNIEJSZE sprawdzenie referencji
+            // Szukamy w kolumnie czy jakikolwiek wiersz zawiera ReferenceValue
+            // lub sprawdzamy czy typ to object (bo tak ustawiliśmy w ViewModelu dla referencji)
+            bool isReference = false;
+            foreach (DataRow row in table.Rows)
+            {
+                var value = row[e.PropertyName];
+                if (value?.GetType().Name == "ReferenceValue")
+                {
+                    isReference = true;
+                    break;
+                }
+            }
+
+            if (isReference)
+            {
+                e.Column = new DataGridTemplateColumn
+                {
+                    Header = e.Column.Header,
+                    CellTemplate = (DataTemplate)Resources["ReferenceCellTemplate"],
+                    SortMemberPath = e.PropertyName
+                };
+                return;
+            }
         }
-        else if (e.PropertyType == typeof(int))
+
+        // 3. Reszta jako tekst (Liczby, Daty, Tekst)
+        e.Column = new DataGridTextColumn
         {
-            e.Column = new DataGridTemplateColumn
+            Header = e.Column.Header,
+            Binding = new Binding(e.PropertyName),
+            ElementStyle = new Style(typeof(TextBlock))
             {
-                Header = e.Column.Header,
-                CellTemplate = (DataTemplate)Resources["ReferenceCellTemplate"]
-            };
+                Setters = {
+                new Setter(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center),
+                new Setter(TextBlock.MarginProperty, new Thickness(10, 0, 10, 0))
+            }
+            }
+        };
+    }
+    private void ItemsGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (sender is DataGrid grid && grid.SelectedItem != null)
+        {
+            // Przewija widok tak, aby wybrany element był widoczny
+            grid.ScrollIntoView(grid.SelectedItem);
         }
     }
 }
