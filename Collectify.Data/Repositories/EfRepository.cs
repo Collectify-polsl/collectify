@@ -23,7 +23,7 @@ public class EfRepository<TEntity> : IRepository<TEntity> where TEntity : class
         return await _dbSet.FindAsync([id], cancellationToken);
     }
 
-    public async Task<IReadOnlyList<TEntity>> GetAllAsync(CancellationToken cancellationToken = default)
+    public virtual async Task<IReadOnlyList<TEntity>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await _dbSet.AsNoTracking().ToListAsync(cancellationToken);
     }
@@ -32,8 +32,7 @@ public class EfRepository<TEntity> : IRepository<TEntity> where TEntity : class
         Expression<Func<TEntity, bool>> predicate,
         CancellationToken cancellationToken = default)
     {
-        return await _dbSet.AsNoTracking()
-                           .Where(predicate)
+        return await _dbSet.Where(predicate)
                            .ToListAsync(cancellationToken);
     }
 

@@ -1,4 +1,4 @@
-﻿<Window x:Class="Collectify.App.MainWindow"
+<Window x:Class="Collectify.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -6,14 +6,15 @@
         xmlns:local="clr-namespace:Collectify.App"
         xmlns:vm="clr-namespace:Collectify.App.ViewModels"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Collectify" Height="600" Width="900"
+        Background="{StaticResource AppBackgroundBrush}"
+        WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </Window.Resources>
 
-    <Grid Background="#F0F2F5">
-
+    <Grid>
         <Grid>
             <Grid.Style>
                 <Style TargetType="Grid">
@@ -26,111 +27,92 @@
                 </Style>
             </Grid.Style>
 
-            <StackPanel Orientation="Horizontal"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Top"
-            Margin="0,20,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-                <!-- Create collection -->
-                <Button Width="180" Height="120" Margin="10"
-            BorderThickness="0" Cursor="Hand"
-            Background="Transparent"
-            Command="{Binding CreateCollectionCommand}">
-                    <Border Background="#3B82F6" CornerRadius="8" Padding="10">
-                        <TextBlock Text="Create collection"
-                       Foreground="White"
-                       FontSize="16"
-                       FontWeight="SemiBold"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       TextAlignment="Center"
-                       TextWrapping="Wrap"/>
-                    </Border>
-                </Button>
+            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,30,0,20">
+                <Button Content="Create Collection"
+                        Command="{Binding CreateCollectionCommand}"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Width="160" Height="50" Margin="10" FontSize="14"/>
 
-                <Button Width="180" Height="120" Margin="10"
-                     BorderThickness="0" Cursor="Hand"
-                    Background="Transparent"
-                    Command="{Binding CreateTemplateCommand}">
-                    <Border Background="#10B981" CornerRadius="8" Padding="10">
-                        <TextBlock Text="Create template"
-                       Foreground="White"
-                       FontSize="16"
-                       FontWeight="SemiBold"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       TextAlignment="Center"
-                       TextWrapping="Wrap"/>
-                    </Border>
-                </Button>
+                <Button Content="Create Template"
+                        Command="{Binding CreateTemplateCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        Width="160" Height="50" Margin="10" FontSize="14"/>
 
-                <Button Width="180" Height="120" Margin="10"
-                    BorderThickness="0" Cursor="Hand"
-                    Background="Transparent"
-                    Command="{Binding EditTemplateCommand}">
-
-                    <Border Background="#8B5CF6" CornerRadius="8" Padding="10">
-                        <TextBlock Text="Edit template"
-                       Foreground="White"
-                       FontSize="16"
-                       FontWeight="SemiBold"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       TextAlignment="Center"
-                       TextWrapping="Wrap"/>
-                    </Border>
-                </Button>
-
+                <Button Content="Edit Template"
+                        Command="{Binding EditTemplateCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        Width="160" Height="50" Margin="10" FontSize="14"/>
             </StackPanel>
 
-            <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0, 160, 0, 0">
-                <ItemsControl ItemsSource="{Binding Collections}">
-
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel HorizontalAlignment="Center" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-
-                    <ItemsControl.ItemTemplate>
+            <ListBox Grid.Row="1" ItemsSource="{Binding Collections}" 
+                     Background="Transparent" 
+                     BorderThickness="0" 
+                     Padding="20"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                     HorizontalContentAlignment="Stretch">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Margin" Value="0,0,0,10"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <ContentPresenter/>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Button Width="180" Height="120" Margin="10" 
-                                    BorderThickness="0" Cursor="Hand" Background="Transparent"
-                                    
-                                    Command="{Binding DataContext.OpenCollectionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    CommandParameter="{Binding}">
-
-                                <Border Background="White" CornerRadius="8" BorderBrush="#D1D5DB" BorderThickness="1" 
-                                        Width="180" Height="120">
-                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Stretch" Margin="15">
-                                        <TextBlock Text="{Binding Name}" 
-                                                   FontSize="16" 
-                                                   FontWeight="SemiBold" 
-                                                   Foreground="#1F2937" 
-                                                   TextWrapping="Wrap" 
+                            <Button Command="{Binding DataContext.OpenCollectionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}"
+                                    Style="{StaticResource BaseButtonStyle}"
+                                    Background="{StaticResource SurfaceBrush}"
+                                    BorderBrush="{StaticResource AppBorderBrush}"
+                                    BorderThickness="1"
+                                    Height="80"
+                                    Padding="15"
+                                    HorizontalContentAlignment="Stretch"
+                                    Cursor="Hand">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Top">
+                                        <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="Bold" 
+                                                   Foreground="{StaticResource TextBrush}"
                                                    TextTrimming="CharacterEllipsis"
-                                                   MaxHeight="40"
-                                                   Margin="0,0,0,5"/>
-                                        <TextBlock Text="{Binding Description}" 
-                                                   FontSize="12" 
-                                                   Foreground="#6B7280" 
+                                                   ToolTip="{Binding Name}"/>
+                                        <TextBlock Text="{Binding Template.Name, StringFormat='Template: {0}'}" 
+                                                   FontSize="12" Foreground="{StaticResource PrimaryBrush}" 
+                                                   Margin="0,2,0,0"/>
+                                        <TextBlock Text="{Binding Description}" FontSize="14" 
+                                                   Foreground="{StaticResource SubTextBrush}" 
+                                                   TextTrimming="CharacterEllipsis" 
+                                                   MaxHeight="40" Margin="0,4,0,0"
                                                    TextWrapping="Wrap"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   MaxHeight="36"/>
+                                                   ToolTip="{Binding Description}"/>
                                     </StackPanel>
-                                </Border>
+                                    <TextBlock Grid.Column="1" Text="➔" VerticalAlignment="Center" 
+                                               Foreground="{StaticResource SubTextBrush}" FontSize="20"
+                                               Margin="15,0,0,0"/>
+                                </Grid>
                             </Button>
                         </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-
-                </ItemsControl>
-            </ScrollViewer>
+                    </ListBox.ItemTemplate>
+                </ListBox>
         </Grid>
 
         <Grid Visibility="{Binding IsDetailsViewVisible, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
-
             <local:SingleCollectionView DataContext="{Binding ActiveDetailsViewModel}"/>
-
         </Grid>
 
     </Grid>

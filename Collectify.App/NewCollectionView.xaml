@@ -1,30 +1,12 @@
-﻿<Window x:Class="Collectify.App.NewCollectionView"
+<Window x:Class="Collectify.App.NewCollectionView"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Nowa kolekcja" Height="450" Width="700">
+        xmlns:local="clr-namespace:Collectify.App"
+        xmlns:converters="clr-namespace:Collectify.App.Converters"
+        Title="New Collection" Height="450" Width="700" 
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource AppBackgroundBrush}">
     
-    <Window.Resources>
-        <Style x:Key="CreateButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#007ACC"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="3">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Foreground" Value="Black"/>
-                    <Setter Property="Background" Value="#CCCCCC"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-    </Window.Resources>
-
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -33,27 +15,38 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Dane kolekcji -->
         <StackPanel Grid.Row="0" Margin="0,0,0,10">
-            <TextBlock Text="Collection Data" FontSize="16" FontWeight="Bold"/>
-            <Label Content="Name:" FontWeight="Bold"/>
-            <TextBox Text="{Binding CollectionName}" Padding="5"/>
-            <Label Content="Description:" FontWeight="Bold"/>
+            <Border Margin="0,0,0,10" Padding="10" CornerRadius="4" 
+                    Visibility="{Binding StatusMessage, Converter={x:Static converters:StringToVisibilityConverter.Instance}}">
+                 <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="{StaticResource ErrorBrush}"/>
+                         <Style.Triggers>
+                            <DataTrigger Binding="{Binding StatusType}" Value="Success">
+                                <Setter Property="Background" Value="{StaticResource SuccessBrush}"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                 </Border.Style>
+                 <TextBlock Text="{Binding StatusMessage}" Foreground="White" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+            </Border>
+
+            <Label Content="Name:" FontWeight="Bold" Foreground="{StaticResource TextBrush}"/>
+            <TextBox Text="{Binding CollectionName, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
+            <Label Content="Description:" FontWeight="Bold" Foreground="{StaticResource TextBrush}"/>
             <TextBox Text="{Binding CollectionDescription}" Height="60"
-                     AcceptsReturn="True" TextWrapping="Wrap"/>
+                     AcceptsReturn="True" TextWrapping="Wrap" Padding="5"/>
         </StackPanel>
 
-        <!-- Wybór szablonu -->
         <StackPanel Grid.Row="1" Margin="0,10,0,10">
-            <TextBlock Text="Choose a Template" FontWeight="Bold"/>
+            <TextBlock Text="Choose a Template" FontWeight="Bold" Foreground="{StaticResource TextBrush}" Margin="0,0,0,5"/>
             <ComboBox ItemsSource="{Binding TemplateList}"
                       SelectedItem="{Binding SelectedTemplate}"
                       DisplayMemberPath="Name"
                       Padding="5"/>
         </StackPanel>
 
-        <!-- Podgląd pól -->
-        <ListView Grid.Row="2" ItemsSource="{Binding DisplayedColumns}">
+        <ListView Grid.Row="2" ItemsSource="{Binding DisplayedColumns}" BorderBrush="{StaticResource AppBorderBrush}">
             <ListView.View>
                 <GridView>
                     <GridViewColumn Header="Name" DisplayMemberBinding="{Binding Name}" Width="200"/>
@@ -62,31 +55,15 @@
             </ListView.View>
         </ListView>
 
-        <!-- Zapis -->
-        <StackPanel Grid.Row="3" HorizontalAlignment="Right" Margin="0,10,0,0">
-            <TextBlock Margin="0,0,0,5" 
-               HorizontalAlignment="Right"
-               FontSize="11" 
-               Foreground="DarkRed"
-               Text="To create collection, set name and choose a template.">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock">
-                        <Setter Property="Visibility" Value="Collapsed"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsEnabled, ElementName=CreateBtn}" Value="False">
-                                <Setter Property="Visibility" Value="Visible"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
+        <StackPanel Grid.Row="3" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <TextBlock FontSize="11" Foreground="{StaticResource DangerBrush}" Margin="0,0,0,5" HorizontalAlignment="Right"
+                       Text="Please fill in all fields."
+                       Visibility="{Binding ErrorMessage, Converter={x:Static converters:StringToVisibilityConverter.Instance}}"/>
 
-            <Button x:Name="CreateBtn"
-            Content="Create Collection"
-            Command="{Binding SaveCollectionCommand}"
-            Style="{StaticResource CreateButtonStyle}"
-            Height="40" 
-            Width="200"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Cancel" IsCancel="True" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,10,0"/>
+                <Button Content="Create Collection" Command="{Binding CreateCommand}" Style="{StaticResource PrimaryButtonStyle}"/>
+            </StackPanel>
         </StackPanel>
     </Grid>
 </Window>

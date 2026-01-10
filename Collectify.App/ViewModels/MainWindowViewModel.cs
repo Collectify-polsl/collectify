@@ -20,7 +20,7 @@ public class MainWindowViewModel: INotifyPropertyChanged
 
 
     private readonly Func<Window> _createCollectionWindowFactory;
-    private readonly Func<Collection, Window> _rowWizardWindowFactory;
+    private readonly Func<Collection, Item?, Window> _rowWizardWindowFactory;
 
     private SingleCollectionViewModel? _activeDetailsViewModel;
     public SingleCollectionViewModel? ActiveDetailsViewModel
@@ -50,7 +50,7 @@ public class MainWindowViewModel: INotifyPropertyChanged
         IItemService itemService,
         ITemplateService templateService,
         Func<Window> createCollectionWindowFactory,
-        Func<Collection, Window> rowWizardWindowFactory
+        Func<Collection, Item?, Window> rowWizardWindowFactory
         )
 
     {
@@ -70,6 +70,7 @@ public class MainWindowViewModel: INotifyPropertyChanged
     private void OpenCreateCollectionWindow()
     {
         var window = _createCollectionWindowFactory();
+        window.Owner = Application.Current.MainWindow;
 
         bool? result = window.ShowDialog();
 
@@ -79,6 +80,7 @@ public class MainWindowViewModel: INotifyPropertyChanged
     {
         var vm = new NewTemplateViewModel(_templateService);
         var view = new NewTemplateView(vm);
+        vm.CloseAction = view.Close;
         view.Owner = Application.Current.MainWindow;
         view.ShowDialog();
     }
@@ -86,6 +88,7 @@ public class MainWindowViewModel: INotifyPropertyChanged
     {
         var vm = new EditTemplateViewModel(_templateService);
         var view = new EditTemplateView(vm);
+        vm.CloseAction = view.Close;
 
         view.Owner = Application.Current.MainWindow;
         view.ShowDialog();

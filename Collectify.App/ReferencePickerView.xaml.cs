@@ -51,8 +51,8 @@ public partial class ReferencePickerWindow : Window
         }
         else
         {
-            MessageBox.Show("Proszę najpierw wybrać przedmiot z listy.",
-                            "Brak wyboru", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("Please select an item from the list first.",
+                            "No selection", MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 }

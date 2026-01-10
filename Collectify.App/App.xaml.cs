@@ -11,6 +11,11 @@ namespace Collectify.App
     /// </summary>
     public partial class App : Application
     {
+        public App()
+        {
+            InitializeComponent();
+        }
+
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
@@ -31,13 +36,16 @@ namespace Collectify.App
                 createCollectionWindowFactory: () =>
                 {
                     var vm = new NewCollectionViewModel(collectionService, templateService);
-                    return new NewCollectionView(vm);
+                    var view = new NewCollectionView(vm);
+                    vm.CloseAction = view.Close;
+                    return view;
                 },
-                rowWizardWindowFactory: (collection) =>
+                rowWizardWindowFactory: (collection, item) =>
                 {
-                    // Tworzymy ViewModel kreatora
-                    var vm = new RowWizardViewModel(collection, itemService, templateService,collectionService);
-                    return new RowWizardView(vm);
+                    var vm = new RowWizardViewModel(collection, itemService, templateService, collectionService, item);
+                    var view = new RowWizardView(vm);
+                    vm.CloseAction = view.Close;
+                    return view;
                 }
             );
 

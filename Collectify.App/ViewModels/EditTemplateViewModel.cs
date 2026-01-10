@@ -1,8 +1,9 @@
-﻿using Collectify.App.Commands;
+using Collectify.App.Commands;
 using Collectify.Model.Entities;
 using Collectify.Model.Enums;
 using Collectify.Model.InputModels;
 using Collectify.Model.Interfaces;
+using Collectify.App;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -21,6 +22,20 @@ public class EditTemplateViewModel : INotifyPropertyChanged
     private readonly ITemplateService _templateService;
 
     public Action? CloseAction { get; set; }
+
+    private string _statusMessage = string.Empty;
+    public string StatusMessage
+    {
+        get => _statusMessage;
+        set { _statusMessage = value; OnPropertyChanged(); }
+    }
+
+    private StatusMessageType _statusType;
+    public StatusMessageType StatusType
+    {
+        get => _statusType;
+        set { _statusType = value; OnPropertyChanged(); }
+    }
 
     public ObservableCollection<Template> TemplateList { get; } = new();
     private Template? _selectedTemplate;
@@ -46,7 +61,7 @@ public class EditTemplateViewModel : INotifyPropertyChanged
         {
             _templateName = value;
             OnPropertyChanged();
-            RefreshSaveState(); // Kluczowe dla aktywacji przycisku przy zmianie tekstu
+            RefreshSaveState();
         }
     }
 
@@ -71,7 +86,6 @@ public class EditTemplateViewModel : INotifyPropertyChanged
     public ICommand SaveTemplateCommand { get; }
     public ICommand DeleteTemplateCommand { get; }
 
-    // Właściwość do bindowania IsEnabled w XAML (opcjonalnie)
     public bool CanSubmit => CanSave();
 
     public EditTemplateViewModel(ITemplateService templateService)
@@ -81,7 +95,6 @@ public class EditTemplateViewModel : INotifyPropertyChanged
         AddColumnCommand = new RelayCommand(AddColumn);
         RemoveColumnCommand = new RelayCommand<ColumnItem>(RemoveColumn);
 
-        // Komenda korzysta z właściwości CanSubmit
         SaveTemplateCommand = new AsyncRelayCommand(SaveAsync, () => CanSubmit);
         DeleteTemplateCommand = new AsyncRelayCommand(DeleteAsync, CanDelete);
 
@@ -140,7 +153,7 @@ public class EditTemplateViewModel : INotifyPropertyChanged
         var fullTemplate = await _templateService.GetTemplateAsync(SelectedTemplate.Id, includeFields: true);
         if (fullTemplate == null) return;
 
-        _templateName = fullTemplate.Name; // Ustawiamy pole prywatne, żeby nie wywołać RefreshSaveState za wcześnie
+        _templateName = fullTemplate.Name;
         OnPropertyChanged(nameof(TemplateName));
 
         foreach (var f in fullTemplate.Fields)
@@ -153,7 +166,7 @@ public class EditTemplateViewModel : INotifyPropertyChanged
             });
         }
 
-        RefreshSaveState(); // Odśwież stan po załadowaniu (powinien być false)
+        RefreshSaveState();
     }
 
     private void AddColumn()
@@ -167,7 +180,6 @@ public class EditTemplateViewModel : INotifyPropertyChanged
             DataType = SelectedFieldType
         });
         NewColumnName = string.Empty;
-        // RefreshSaveState wywoła się automatycznie przez OnColumnsChanged
     }
 
     private void RemoveColumn(ColumnItem item)
@@ -178,7 +190,6 @@ public class EditTemplateViewModel : INotifyPropertyChanged
             _removedColumns.Add(item);
 
         Columns.Remove(item);
-        // RefreshSaveState wywoła się automatycznie przez OnColumnsChanged
     }
 
     private async Task SaveAsync()
@@ -187,6 +198,7 @@ public class EditTemplateViewModel : INotifyPropertyChanged
 
         try
         {
+            StatusMessage = string.Empty;
             if (TemplateName != SelectedTemplate!.Name)
                 await _templateService.UpdateTemplateAsync(SelectedTemplate.Id, TemplateName);
 
@@ -204,12 +216,12 @@ public class EditTemplateViewModel : INotifyPropertyChanged
                 col.Id = newField.Id;
             }
 
-            MessageBox.Show("Template saved successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             CloseAction?.Invoke();
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error saving template: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            StatusMessage = $"Error saving template: {ex.Message}";
+            StatusType = StatusMessageType.Error;
         }
     }
 
@@ -219,17 +231,23 @@ public class EditTemplateViewModel : INotifyPropertyChanged
     {
         if (SelectedTemplate == null) return;
 
-        var result = MessageBox.Show($"Delete template '{TemplateName}'?", "Confirm", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-        if (result != MessageBoxResult.Yes) return;
+        var window = new ConfirmationWindow($"Delete template '{TemplateName}'?", "Confirm");
+        window.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
+
+        if (window.ShowDialog() != true) return;
 
         try
         {
+            StatusMessage = string.Empty;
             await _templateService.DeleteTemplateAsync(SelectedTemplate.Id);
             LoadTemplatesAsync();
+            StatusMessage = "Template deleted.";
+            StatusType = StatusMessageType.Success;
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error: {ex.Message}");
+            StatusMessage = $"Error: {ex.Message}";
+            StatusType = StatusMessageType.Error;
         }
     }
 

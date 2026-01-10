@@ -1,7 +1,9 @@
-﻿using Collectify.App.Commands;
+using Collectify.App.Commands;
+using Collectify.App;
 using Collectify.Model.Enums;
 using Collectify.Model.InputModels;
 using Collectify.Model.Interfaces;
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -18,7 +20,20 @@ public class NewTemplateViewModel : INotifyPropertyChanged
 
     public Action? CloseAction { get; set; }
 
-    // ====== NAZWA SZABLONU ======
+    private string _statusMessage = string.Empty;
+    public string StatusMessage
+    {
+        get => _statusMessage;
+        set { _statusMessage = value; OnPropertyChanged(); }
+    }
+
+    private StatusMessageType _statusType;
+    public StatusMessageType StatusType
+    {
+        get => _statusType;
+        set { _statusType = value; OnPropertyChanged(); }
+    }
+
     private string _templateName = string.Empty;
     public string TemplateName
     {
@@ -27,11 +42,11 @@ public class NewTemplateViewModel : INotifyPropertyChanged
         {
             _templateName = value;
             OnPropertyChanged();
-            (SaveTemplateCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+            OnPropertyChanged(nameof(ErrorMessage));
+            (CreateCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
         }
     }
 
-    // ====== DODAWANIE POLA ======
     private string _newColumnName = string.Empty;
     public string NewColumnName
     {
@@ -61,13 +76,13 @@ public class NewTemplateViewModel : INotifyPropertyChanged
         set { _selectedFieldType = value; OnPropertyChanged(); }
     }
 
-    // ====== LISTA PÓL ======
+    public string? ErrorMessage => CanSave() ? null : "Please fill in all fields.";
+
     public ObservableCollection<ColumnItem> Columns { get; } = new();
 
-    // ====== KOMENDY ======
     public ICommand AddColumnCommand { get; }
     public ICommand RemoveColumnCommand { get; }
-    public ICommand SaveTemplateCommand { get; }
+    public ICommand CreateCommand { get; }
 
     public NewTemplateViewModel(ITemplateService templateService)
     {
@@ -75,13 +90,15 @@ public class NewTemplateViewModel : INotifyPropertyChanged
 
         AddColumnCommand = new RelayCommand(AddColumn, CanAddColumn);
         RemoveColumnCommand = new RelayCommand<ColumnItem>(RemoveColumn);
-        SaveTemplateCommand = new AsyncRelayCommand(SaveTemplateAsync, CanSave);
+        CreateCommand = new AsyncRelayCommand(SaveTemplateAsync, CanSave);
 
         Columns.CollectionChanged += (_, __) =>
-            (SaveTemplateCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+        {
+            OnPropertyChanged(nameof(ErrorMessage));
+            (CreateCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+        };
     }
 
-    // ====== LOGIKA ======
     private bool CanAddColumn() =>
         !string.IsNullOrWhiteSpace(NewColumnName) &&
         !Columns.Any(c =>
@@ -111,6 +128,7 @@ public class NewTemplateViewModel : INotifyPropertyChanged
     {
         try
         {
+            StatusMessage = string.Empty;
             var fields = Columns.Select(c =>
                 new TemplateFieldDefinitionInput
                 {
@@ -121,21 +139,15 @@ public class NewTemplateViewModel : INotifyPropertyChanged
 
             await _templateService.CreateTemplateAsync(TemplateName, fields);
 
-            MessageBox.Show(
-                "Template saved!",
-                "Success",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
-
             CloseAction?.Invoke();
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Save error: {ex.Message}");
+            StatusMessage = $"Save error: {ex.Message}";
+            StatusType = StatusMessageType.Error;
         }
     }
 
-    // ====== INotifyPropertyChanged ======
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

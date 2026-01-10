@@ -1,4 +1,5 @@
-﻿using Collectify.App.Commands;
+using Collectify.App.Commands;
+using Collectify.App;
 using Collectify.Model.Enums;
 using Collectify.Model.Interfaces;
 using Collectify.Model.Entities;
@@ -9,6 +10,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Linq;
 using System.Threading.Tasks;
+using System;
 
 namespace Collectify.App.ViewModels;
 
@@ -27,7 +29,8 @@ public class NewCollectionViewModel : INotifyPropertyChanged
         {
             _collectionName = value;
             OnPropertyChanged();
-            (SaveCollectionCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+            OnPropertyChanged(nameof(ErrorMessage));
+            (CreateCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
         }
     }
 
@@ -42,6 +45,20 @@ public class NewCollectionViewModel : INotifyPropertyChanged
         }
     }
 
+    private string _statusMessage = string.Empty;
+    public string StatusMessage
+    {
+        get => _statusMessage;
+        set { _statusMessage = value; OnPropertyChanged(); }
+    }
+
+    private StatusMessageType _statusType;
+    public StatusMessageType StatusType
+    {
+        get => _statusType;
+        set { _statusType = value; OnPropertyChanged(); }
+    }
+
     public ObservableCollection<Template> TemplateList { get; } = new();
 
     private Template? _selectedTemplate;
@@ -52,14 +69,17 @@ public class NewCollectionViewModel : INotifyPropertyChanged
         {
             _selectedTemplate = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(ErrorMessage));
             LoadTemplateFields();
-            (SaveCollectionCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+            (CreateCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
         }
     }
 
+    public string? ErrorMessage => CanSave() ? null : "Please fill in all fields.";
+
     public ObservableCollection<ColumnItem> DisplayedColumns { get; } = new();
 
-    public ICommand SaveCollectionCommand { get; }
+    public ICommand CreateCommand { get; }
 
     public NewCollectionViewModel(
         ICollectionService collectionService,
@@ -68,7 +88,7 @@ public class NewCollectionViewModel : INotifyPropertyChanged
         _collectionService = collectionService;
         _templateService = templateService;
 
-        SaveCollectionCommand = new AsyncRelayCommand(SaveAsync, CanSave);
+        CreateCommand = new AsyncRelayCommand(SaveAsync, CanSave);
 
         LoadTemplates();
     }
@@ -103,7 +123,8 @@ public class NewCollectionViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading template: {ex.Message}");
+            StatusMessage = $"Error loading template: {ex.Message}";
+            StatusType = StatusMessageType.Error;
         }
     }
 
@@ -115,22 +136,18 @@ public class NewCollectionViewModel : INotifyPropertyChanged
     {
         try
         {
+            StatusMessage = string.Empty;
             await _collectionService.CreateCollectionAsync(
                 SelectedTemplate!.Id,
                 CollectionName,
                 CollectionDescription);
 
-            MessageBox.Show(
-                "Collection created successfully!",
-                "Success",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
-
             CloseAction?.Invoke();
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error: {ex.Message}");
+            StatusMessage = $"Error: {ex.Message}";
+            StatusType = StatusMessageType.Error;
         }
     }
 

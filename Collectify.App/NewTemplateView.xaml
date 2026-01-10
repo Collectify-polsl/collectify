@@ -1,34 +1,13 @@
-﻿<Window x:Class="Collectify.App.Views.NewTemplateView"
+<Window x:Class="Collectify.App.Views.NewTemplateView"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Nowy szablon"
+        xmlns:converters="clr-namespace:Collectify.App.Converters"
+        Title="New Template"
         Height="500"
         Width="650"
-        WindowStartupLocation="CenterOwner">
-    <Window.Resources>
-        <Style x:Key="SaveButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#007ACC"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
-                            CornerRadius="3">
-                            <ContentPresenter HorizontalAlignment="Center" 
-                                          VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource AppBackgroundBrush}">
 
-            <Style.Triggers>
-                <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Foreground" Value="Black"/>
-                    <Setter Property="Background" Value="#CCCCCC"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-    </Window.Resources>
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -37,15 +16,29 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Nazwa szablonu -->
+        <!-- Template Name -->
         <StackPanel Grid.Row="0" Margin="0,0,0,10">
-            <TextBlock Text="Template Name" FontWeight="Bold"/>
-            <TextBox Text="{Binding TemplateName, UpdateSourceTrigger=PropertyChanged}"
-                     Padding="5"/>
+            <Border Margin="0,0,0,10" Padding="10" CornerRadius="4" 
+                    Visibility="{Binding StatusMessage, Converter={x:Static converters:StringToVisibilityConverter.Instance}}">
+                 <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="{StaticResource ErrorBrush}"/>
+                         <Style.Triggers>
+                            <DataTrigger Binding="{Binding StatusType}" Value="Success">
+                                <Setter Property="Background" Value="{StaticResource SuccessBrush}"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                 </Border.Style>
+                 <TextBlock Text="{Binding StatusMessage}" Foreground="White" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+            </Border>
+
+            <TextBlock Text="Template Name" FontWeight="Bold" Foreground="{StaticResource TextBrush}"/>
+            <TextBox Text="{Binding TemplateName, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,5,0,0"/>
         </StackPanel>
 
-        <!-- Dodawanie kolumn -->
-        <GroupBox Grid.Row="1" Header="Add a Field" Margin="0,0,0,10">
+        <!-- Add Field -->
+        <GroupBox Grid.Row="1" Header="Add a Field" Margin="0,0,0,10" BorderBrush="{StaticResource AppBorderBrush}">
             <Grid Margin="10">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="2*"/>
@@ -66,27 +59,28 @@
                 <Button Grid.Column="2"
                         Content="Add"
                         Command="{Binding AddColumnCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}"
                         Padding="15,5"/>
             </Grid>
         </GroupBox>
 
-        <!-- Lista pól -->
+        <!-- Fields List -->
         <ListView Grid.Row="2"
                   ItemsSource="{Binding Columns}"
-                  Margin="0,0,0,10">
+                  Margin="0,0,0,10"
+                  BorderBrush="{StaticResource AppBorderBrush}">
             <ListView.View>
                 <GridView>
-                    <GridViewColumn Header="Name" Width="250"
-                                    DisplayMemberBinding="{Binding Name}"/>
-                    <GridViewColumn Header="Data Type" Width="150"
-                                    DisplayMemberBinding="{Binding DataType}"/>
-                    <GridViewColumn Header="Action" Width="80">
+                    <GridViewColumn Header="Name" Width="250" DisplayMemberBinding="{Binding Name}"/>
+                    <GridViewColumn Header="Data Type" Width="150" DisplayMemberBinding="{Binding DataType}"/>
+                    <GridViewColumn Header="Action" Width="100">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
                                 <Button Content="Remove"
-                                        Foreground="Red"
-                                        Command="{Binding DataContext.RemoveColumnCommand,
-                                                  RelativeSource={RelativeSource AncestorType=Window}}"
+                                        Foreground="{StaticResource DangerBrush}"
+                                        Style="{StaticResource BaseButtonStyle}"
+                                        Background="Transparent"
+                                        Command="{Binding DataContext.RemoveColumnCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                         CommandParameter="{Binding}"/>
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
@@ -95,30 +89,16 @@
             </ListView.View>
         </ListView>
 
-        <StackPanel Grid.Row="3" HorizontalAlignment="Right">
-            <TextBlock Foreground="DarkRed" 
-               FontSize="11" 
-               Margin="0,0,0,5" 
-               HorizontalAlignment="Right"
-               Text="To save the template, add at least one field and set template name.">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock">
-                        <Setter Property="Visibility" Value="Collapsed"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsEnabled, ElementName=SaveButton}" Value="False">
-                                <Setter Property="Visibility" Value="Visible"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
+        <!-- Footer -->
+        <StackPanel Grid.Row="3" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <TextBlock FontSize="11" Foreground="{StaticResource DangerBrush}" Margin="0,0,0,5" HorizontalAlignment="Right"
+                       Text="Please fill in all fields."
+                       Visibility="{Binding ErrorMessage, Converter={x:Static converters:StringToVisibilityConverter.Instance}}"/>
 
-            <Button x:Name="SaveButton"
-            Content="Save Template"
-            Style="{StaticResource SaveButtonStyle}"
-            Command="{Binding SaveTemplateCommand}"
-            Height="40"
-            Width="180"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Cancel" IsCancel="True" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,10,0"/>
+                <Button Content="Create Template" Command="{Binding CreateCommand}" Style="{StaticResource PrimaryButtonStyle}"/>
+            </StackPanel>
         </StackPanel>
     </Grid>
 </Window>

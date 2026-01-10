@@ -1,4 +1,4 @@
-﻿using Collectify.Model.Collection;
+using Collectify.Model.Collection;
 using Collectify.Model.Interfaces;
 using Microsoft.EntityFrameworkCore;
 

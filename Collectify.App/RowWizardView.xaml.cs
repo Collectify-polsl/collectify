@@ -10,7 +10,12 @@ public partial class RowWizardView : Window
     {
         InitializeComponent();
         DataContext = vm;
-        vm.CloseAction = Close;
+        vm.CloseAction = () => 
+        {
+            if (vm.DialogResult == true)
+                this.DialogResult = true;
+            Close();
+        };
     }
 
     private void DataGrid_OnAutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)

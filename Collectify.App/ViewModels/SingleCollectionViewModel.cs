@@ -1,9 +1,10 @@
-﻿using Collectify.App.Commands;
+using Collectify.App.Commands;
 using Collectify.App.Converters;
 using Collectify.Model.Collection;
 using Collectify.Model.Entities;
 using Collectify.Model.Enums;
 using Collectify.Model.Interfaces;
+using Collectify.App;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
@@ -14,6 +15,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using System.Windows.Data;
 
 namespace Collectify.App.ViewModels;
 
@@ -23,7 +29,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     private readonly IItemService _itemService;
     private readonly ITemplateService _templateService;
     private readonly ICollectionService _collectionService;
-    private readonly Func<Collection, Window> _rowWizardFactory;
+    private readonly Func<Collection, Item?, Window> _rowWizardFactory;
 
     private bool _isPopupView;
     public bool IsPopupView
@@ -35,10 +41,15 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     public record CollectionDisplayItem(int Id, string Name);
     public ObservableCollection<CollectionDisplayItem> CollectionList { get; } = new();
 
-    private DataTable? _dataTableWithMetadata;
+    private DataTable? _gridDataTable;
+    public DataTable? GridDataTable
+    {
+        get => _gridDataTable;
+        set { _gridDataTable = value; OnPropertyChanged(); }
+    }
 
-    private DataView _dynamicTable;
-    public DataView DynamicTable
+    private ICollectionView _dynamicTable;
+    public ICollectionView DynamicTable
     {
         get => _dynamicTable;
         set { _dynamicTable = value; OnPropertyChanged(); }
@@ -71,6 +82,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         {
             _selectedRow = value;
             OnPropertyChanged();
+            (EditItemCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
     }
 
@@ -115,6 +127,43 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     public ICommand NavigateToReferencedItemCommand { get; }
     public ICommand OpenFullImageCommand { get; }
     public ICommand ClearFilterCommand { get; }
+    public ICommand EditCollectionCommand { get; }
+    public ICommand EditItemCommand { get; }
+    public ICommand RefreshCommand { get; }
+
+    private string _statusMessage = string.Empty;
+    public string StatusMessage
+    {
+        get => _statusMessage;
+        set { _statusMessage = value; OnPropertyChanged(); }
+    }
+
+    private StatusMessageType _statusType;
+    public StatusMessageType StatusType
+    {
+        get => _statusType;
+        set { _statusType = value; OnPropertyChanged(); }
+    }
+
+    private CancellationTokenSource? _statusCts;
+
+    private void ShowStatus(string message, StatusMessageType type, int durationMilliseconds = 5000)
+    {
+        _statusCts?.Cancel();
+        _statusCts = new CancellationTokenSource();
+        var token = _statusCts.Token;
+
+        StatusMessage = message;
+        StatusType = type;
+
+        Task.Delay(durationMilliseconds, token).ContinueWith(t =>
+        {
+            if (!t.IsCanceled)
+            {
+                Application.Current.Dispatcher.Invoke(() => StatusMessage = string.Empty);
+            }
+        });
+    }
 
     public record ReferenceValue(int Id);
     public Action<int>? SwitchCollectionAction { get; set; }
@@ -125,7 +174,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         IItemService itemService,
         ITemplateService templateService,
         ICollectionService collectionService,
-        Func<Collection, Window> rowWizardFactory)
+        Func<Collection, Item?, Window> rowWizardFactory)
     {
         _currentCollection = collection;
         _itemService = itemService;
@@ -141,16 +190,81 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         NavigateToReferencedItemCommand = new RelayCommand<object>(NavigateToReferencedItem);
         OpenFullImageCommand = new RelayCommand<object>(OpenFullImage);
         ClearFilterCommand = new RelayCommand(ClearFilter);
+        EditCollectionCommand = new AsyncRelayCommand(EditCollectionAsync);
+        EditItemCommand = new RelayCommand(EditSelectedItem, () => SelectedRow != null);
+        RefreshCommand = new AsyncRelayCommand(LoadDataAsync);
 
         LoadDataAsync();
         LoadCollectionListAsync();
     }
 
+    private async void EditSelectedItem()
+    {
+         if (SelectedRow == null) return;
+         int itemId = (int)SelectedRow["Id"];
+         
+         StatusMessage = string.Empty;
+         
+         var item = await _itemService.GetItemAsync(itemId, includeFieldValues: true);
+         
+         if (item != null)
+         {
+             var window = _rowWizardFactory(_currentCollection, item);
+             window.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
+             window.Title = "Edit Item"; 
+             
+             window.ShowDialog();
+         }
+    }
+
+    public void HighlightItem(int itemId)
+    {
+        _itemToHighlight = itemId;
+        if (DynamicTable != null)
+        {
+             foreach (DataRowView rowView in DynamicTable)
+             {
+                 if (Convert.ToInt32(rowView["Id"]) == itemId)
+                 {
+                     SelectedRow = rowView;
+                     break;
+                 }
+             }
+             if (SelectedRow != null) _itemToHighlight = null;
+        }
+    }
+
+    private async Task EditCollectionAsync()
+    {
+        var window = new EditCollectionWindow(_currentCollection.Name, _currentCollection.Description);
+        window.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
+        
+        if (window.ShowDialog() == true)
+        {
+            try
+            {
+                _currentCollection.Description = window.NewDescription;
+                                await _collectionService.UpdateCollectionAsync(
+                                    _currentCollection.Id, 
+                                    _currentCollection.Name, 
+                                    _currentCollection.Description);
+                
+                                ShowStatus("Collection description updated successfully!", StatusMessageType.Success);
+                            }
+                            catch (Exception ex)
+                            {             
+                                ShowStatus($"Error updating collection: {ex.Message}", StatusMessageType.Error);
+                            }
+                        }
+                    }
     private void OpenNewElementCreator()
     {
-        var window = _rowWizardFactory(_currentCollection);
-        window.ShowDialog();
-        LoadDataAsync();
+        var window = _rowWizardFactory(_currentCollection, null);
+        window.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
+        if (window.ShowDialog() == true)
+        {
+            LoadDataAsync();
+        }
     }
 
     private async void NavigateToReferencedItem(object? parameter)
@@ -182,18 +296,20 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
                         _collectionService,
                         _rowWizardFactory);
 
-                    newVm._itemToHighlight = itemId;
+                    newVm.HighlightItem(itemId);
                     newVm.IsPopupView = true;
 
                     var window = new Window
                     {
                         Title = $"Collection: {targetCollection.Name}",
-                        Width = 600,
-                        Height = 400,
+                        Width = 900,
+                        Height = 500,
                         Content = new SingleCollectionView { DataContext = newVm },
                         WindowStartupLocation = WindowStartupLocation.CenterScreen,
                         Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F0F2F5"))
                     };
+
+                    newVm.NavigateBackAction = window.Close;
 
                     window.Show();
                 }
@@ -205,6 +321,8 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     {
         try
         {
+            SelectedRow = null;
+
             var template = await _templateService.GetTemplateAsync(_currentCollection.TemplateId, includeFields: true);
             if (template == null) return;
 
@@ -225,10 +343,13 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
                 }
             }
 
+            table.Columns.Add("CreationDate", typeof(DateTime));
+
             foreach (var item in items)
             {
                 DataRow row = table.NewRow();
                 row["Id"] = item.Id;
+                row["CreationDate"] = item.CreationDate.ToLocalTime();
 
                 foreach (var field in sortedFields)
                 {
@@ -253,8 +374,11 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
                 table.Rows.Add(row);
             }
 
-            _dataTableWithMetadata = table;
-            DynamicTable = table.DefaultView;
+            GridDataTable = table;
+            
+            var list = new List<DataRowView>();
+            foreach (DataRowView view in table.DefaultView) list.Add(view);
+            DynamicTable = new ListCollectionView(list);
 
             AvailableColumns.Clear();
             foreach (DataColumn column in table.Columns)
@@ -280,7 +404,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading data: {ex.Message}");
+            ShowStatus($"Error loading data: {ex.Message}", StatusMessageType.Error);
         }
     }
 
@@ -298,30 +422,27 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error loading collection list: {ex.Message}");
+            ShowStatus($"Error loading collection list: {ex.Message}", StatusMessageType.Error);
         }
     }
 
     private async void DeleteCollection()
     {
-        var result = MessageBox.Show(
+        var window = new ConfirmationWindow(
             $"Are you sure you want to delete the collection \"{_currentCollection.Name}\"?\nThis operation cannot be undone.",
-            "Confirm deletion",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+            "Confirm deletion");
+        window.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
 
-        if (result != MessageBoxResult.Yes) return;
+        if (window.ShowDialog() != true) return;
 
         try
         {
             await _collectionService.DeleteCollectionAsync(_currentCollection.Id);
-
-            MessageBox.Show("Collection deleted successfully.", "Deleted", MessageBoxButton.OK, MessageBoxImage.Information);
             NavigateBackAction?.Invoke();
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error deleting collection: {ex.Message}");
+             ShowStatus($"Error deleting collection: {ex.Message}", StatusMessageType.Error);
         }
     }
 
@@ -353,54 +474,51 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
     private void ApplyFilter()
     {
-        if (DynamicTable == null || _dataTableWithMetadata == null) return;
+        if (DynamicTable == null) return;
 
         if (string.IsNullOrWhiteSpace(SelectedFilterColumn) || string.IsNullOrWhiteSpace(FilterText))
         {
-            DynamicTable.RowFilter = string.Empty;
+            DynamicTable.Filter = null;
+            StatusMessage = string.Empty;
             return;
         }
 
         try
         {
-            var column = DynamicTable.Table.Columns[SelectedFilterColumn];
-            if (column == null) return;
+            Regex regex = new Regex(FilterText, RegexOptions.IgnoreCase);
+            
+            StatusMessage = string.Empty;
 
-            var metadataColumnName = $"{SelectedFilterColumn}_CollectionName";
-            var hasMetadataColumn = _dataTableWithMetadata.Columns.Contains(metadataColumnName);
+            DynamicTable.Filter = (obj) =>
+            {
+                if (obj is DataRowView rowView)
+                {
+                    var metadataColumnName = $"{SelectedFilterColumn}_CollectionName";
+                    if (rowView.Row.Table.Columns.Contains(metadataColumnName))
+                    {
+                        var val = rowView[metadataColumnName]?.ToString();
+                        return val != null && regex.IsMatch(val);
+                    }
 
-            if (column.DataType == typeof(object) && hasMetadataColumn)
-            {
-                DynamicTable.RowFilter = $"Convert([{metadataColumnName}], 'System.String') LIKE '%{FilterText.Replace("'", "''")}%'";
-            }
-            else if (column.DataType == typeof(object) || column.DataType == typeof(string))
-            {
-                DynamicTable.RowFilter = $"Convert([{SelectedFilterColumn}], 'System.String') LIKE '%{FilterText.Replace("'", "''")}%'";
-            }
-            else if (column.DataType == typeof(int) || column.DataType == typeof(decimal))
-            {
-                if (decimal.TryParse(FilterText, out decimal numValue))
-                {
-                    DynamicTable.RowFilter = $"[{SelectedFilterColumn}] = {numValue}";
+                    if (!rowView.Row.Table.Columns.Contains(SelectedFilterColumn)) return false;
+                    var cellValue = rowView[SelectedFilterColumn];
+                    if (cellValue == null || cellValue == DBNull.Value) return false;
+
+                    string textToCheck = cellValue.ToString() ?? "";
+                    return regex.IsMatch(textToCheck);
                 }
-                else
-                {
-                    DynamicTable.RowFilter = string.Empty;
-                }
-            }
-            else if (column.DataType == typeof(DateTime))
-            {
-                DynamicTable.RowFilter = $"Convert([{SelectedFilterColumn}], 'System.String') LIKE '%{FilterText.Replace("'", "''")}%'";
-            }
-            else if (column.DataType == typeof(byte[]))
-            {
-                DynamicTable.RowFilter = string.Empty;
-            }
+                return false;
+            };
+            
+            StatusMessage = string.Empty;
+        }
+        catch (ArgumentException)
+        {
+            ShowStatus("Invalid Regex", StatusMessageType.Error);
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Filter error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
-            DynamicTable.RowFilter = string.Empty;
+            ShowStatus($"Filter error: {ex.Message}", StatusMessageType.Error);
         }
     }
 
@@ -411,8 +529,10 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
         if (DynamicTable != null)
         {
-            DynamicTable.RowFilter = string.Empty;
+            DynamicTable.Filter = null;
         }
+        
+        StatusMessage = string.Empty;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -421,44 +541,54 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
     private void OpenFullImage(object? parameter)
     {
-        byte[]? imageData = null;
+        try
+        {
+            byte[]? imageData = null;
 
-        if (parameter is byte[] bytes)
-        {
-            imageData = bytes;
-        }
-        else if (parameter is DataRowView rowView)
-        {
-            foreach (DataColumn col in rowView.Row.Table.Columns)
+            if (parameter is byte[] bytes)
             {
-                if (col.DataType == typeof(byte[]))
+                imageData = bytes;
+            }
+            else if (parameter is DataRowView rowView)
+            {
+                foreach (DataColumn col in rowView.Row.Table.Columns)
                 {
-                    imageData = rowView[col.ColumnName] as byte[];
-                    break;
+                    if (col.DataType == typeof(byte[]))
+                    {
+                        imageData = rowView[col.ColumnName] as byte[];
+                        break;
+                    }
                 }
             }
+
+            if (imageData == null || imageData.Length == 0)
+            {
+                ShowStatus("No image data available for this item.", StatusMessageType.Error);
+                return;
+            }
+
+            var window = new Window
+            {
+                Title = "View Image",
+                WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                SizeToContent = SizeToContent.WidthAndHeight,
+                Background = Brushes.Black
+            };
+
+            var imageControl = new System.Windows.Controls.Image
+            {
+                Source = new BytesToImageConverter().Convert(imageData, typeof(ImageSource), null, System.Globalization.CultureInfo.CurrentCulture) as ImageSource,
+                Stretch = Stretch.Uniform,
+                MaxWidth = 1200,
+                MaxHeight = 900
+            };
+
+            window.Content = imageControl;
+            window.ShowDialog();
         }
-
-        if (imageData == null || imageData.Length == 0) return;
-
-        var window = new Window
+        catch (Exception ex)
         {
-            Title = "View Image",
-            WindowStartupLocation = WindowStartupLocation.CenterScreen,
-            SizeToContent = SizeToContent.WidthAndHeight,
-            Background = Brushes.Black
-        };
-
-        var imageControl = new System.Windows.Controls.Image
-        {
-            Source = new BytesToImageConverter().Convert(imageData, typeof(ImageSource), null, System.Globalization.CultureInfo.CurrentCulture) as ImageSource,
-            Stretch = Stretch.Uniform,
-            MaxWidth = 1000,
-            MaxHeight = 800
-        };
-
-        imageControl.MouseDown += (s, e) => window.Close();
-        window.Content = imageControl;
-        window.ShowDialog();
+             ShowStatus($"Could not open image preview: {ex.Message}", StatusMessageType.Error);
+        }
     }
 }
