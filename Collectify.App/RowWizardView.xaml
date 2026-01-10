@@ -2,7 +2,6 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Row Wizard" Height="300" Width="850" WindowStartupLocation="CenterOwner">
-
     <Window.Resources>
         <DataTemplate x:Key="ImageCellTemplate">
             <Button Command="{Binding DataContext.UploadImageCommand, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -16,34 +15,34 @@
                 </StackPanel>
             </Button>
         </DataTemplate>
-
         <DataTemplate x:Key="ReferenceCellTemplate">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                 <Button Content="📁" 
                         Command="{Binding DataContext.OpenReferencePickerCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                         CommandParameter="{Binding Column.Header, RelativeSource={RelativeSource AncestorType=DataGridCell}}"
                         Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Select Item Reference"/>
-
                 <TextBlock Text="{Binding Value}" VerticalAlignment="Center" Margin="5,0,0,0" Foreground="Gray"/>
             </StackPanel>
         </DataTemplate>
     </Window.Resources>
-
     <Grid Margin="15">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-
         <TextBlock Text="Fill in the data for the new item:" FontSize="14" FontWeight="Bold" Margin="0,0,0,10"/>
-
         <DataGrid Grid.Row="1" ItemsSource="{Binding NewRowPreview}"
                   AutoGenerateColumns="True"
                   AutoGeneratingColumn="DataGrid_OnAutoGeneratingColumn"
                   CanUserAddRows="False" SelectionUnit="Cell"/>
-
         <Button Grid.Row="2" Content="SAVE ITEM" Command="{Binding SubmitRowCommand}" 
-                Height="40" Margin="0,15,0,0" Background="#007ACC" Foreground="White" FontWeight="Bold"/>
+                Height="40" Margin="0,15,0,0" Background="#10B981" Foreground="White" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand">
+            <Button.Resources>
+                <Style TargetType="Border">
+                    <Setter Property="CornerRadius" Value="4"/>
+                </Style>
+            </Button.Resources>
+        </Button>
     </Grid>
 </Window>

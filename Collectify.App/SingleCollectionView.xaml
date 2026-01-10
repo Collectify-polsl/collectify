@@ -16,8 +16,8 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="6">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="4,0"/>
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
@@ -127,6 +127,61 @@
                             Background="#EF4444" Foreground="White"/>
                 </StackPanel>
             </DockPanel>
+        </Border>
+
+        <!-- Pasek filtrowania -->
+        <Border Grid.Row="1" Background="White" BorderBrush="#D1D5DB" BorderThickness="0,0,0,1" Padding="15,10" Margin="0">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Filter by:" 
+                           VerticalAlignment="Center" 
+                           Foreground="#4B5563" 
+                           FontWeight="SemiBold"
+                           Margin="0,0,10,0"/>
+                
+                <ComboBox x:Name="FilterColumnComboBox"
+                          Width="180" 
+                          VerticalContentAlignment="Center"
+                          Margin="0,0,15,0">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <TextBlock Text="Value:" 
+                           VerticalAlignment="Center" 
+                           Foreground="#4B5563" 
+                           FontWeight="SemiBold"
+                           Margin="0,0,10,0"/>
+                
+                <TextBox x:Name="FilterTextBox"
+                         Width="250"
+                         Padding="8,6"
+                         VerticalContentAlignment="Center"
+                         BorderBrush="#D1D5DB"
+                         BorderThickness="1">
+                    <TextBox.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4"/>
+                        </Style>
+                    </TextBox.Resources>
+                </TextBox>
+
+                <Button Content="Clear" 
+                        Padding="12,6"
+                        Margin="10,0,0,0"
+                        Background="#6B7280" 
+                        Foreground="White"
+                        BorderThickness="0"
+                        Cursor="Hand">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4"/>
+                        </Style>
+                    </Button.Resources>
+                </Button>
+            </StackPanel>
         </Border>
 
         <Border Grid.Row="2" Background="White" Margin="12" CornerRadius="8" BorderBrush="#D1D5DB" BorderThickness="1">

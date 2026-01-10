@@ -90,4 +90,9 @@ public partial class SingleCollectionView : UserControl
             grid.ScrollIntoView(grid.SelectedItem);
         }
     }
+
+    private void Button_Click(object sender, RoutedEventArgs e)
+    {
+
+    }
 }
