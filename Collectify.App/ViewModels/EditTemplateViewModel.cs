@@ -3,7 +3,10 @@ using Collectify.Model.Entities;
 using Collectify.Model.Enums;
 using Collectify.Model.InputModels;
 using Collectify.Model.Interfaces;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -19,11 +22,10 @@ public class EditTemplateViewModel : INotifyPropertyChanged
 
     public Action? CloseAction { get; set; }
 
-    // List of all templates
     public ObservableCollection<Template> TemplateList { get; } = new();
     private Template? _selectedTemplate;
-
     private string _templateName = string.Empty;
+
     public Template? SelectedTemplate
     {
         get => _selectedTemplate;
@@ -32,9 +34,7 @@ public class EditTemplateViewModel : INotifyPropertyChanged
             _selectedTemplate = value;
             OnPropertyChanged();
             LoadTemplateFields();
-
-            // Powiadom komendy o zmianie
-            (SaveTemplateCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+            RefreshSaveState();
             (DeleteTemplateCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
         }
     }
@@ -46,38 +46,33 @@ public class EditTemplateViewModel : INotifyPropertyChanged
         {
             _templateName = value;
             OnPropertyChanged();
-
-            // Powiadom komendę zapisu o zmianie nazwy
-            (SaveTemplateCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+            RefreshSaveState(); // Kluczowe dla aktywacji przycisku przy zmianie tekstu
         }
     }
 
-    // Fields of the template
     public ObservableCollection<ColumnItem> Columns { get; } = new();
 
-    // Add field
     public ObservableCollection<FieldType> DataTypeList { get; } = new()
     {
-        FieldType.Text,
-        FieldType.Integer,
-        FieldType.Decimal,
-        FieldType.Date,
-        FieldType.Image,
-        FieldType.ItemReference
+        FieldType.Text, FieldType.Integer, FieldType.Decimal,
+        FieldType.Date, FieldType.Image, FieldType.ItemReference
     };
+
     private string _newColumnName = string.Empty;
     public string NewColumnName { get => _newColumnName; set { _newColumnName = value; OnPropertyChanged(); } }
+
     private FieldType _selectedFieldType = FieldType.Text;
     public FieldType SelectedFieldType { get => _selectedFieldType; set { _selectedFieldType = value; OnPropertyChanged(); } }
 
-    // Track removed columns to delete from DB
     private readonly ObservableCollection<ColumnItem> _removedColumns = new();
 
-    // Commands
     public ICommand AddColumnCommand { get; }
     public ICommand RemoveColumnCommand { get; }
     public ICommand SaveTemplateCommand { get; }
     public ICommand DeleteTemplateCommand { get; }
+
+    // Właściwość do bindowania IsEnabled w XAML (opcjonalnie)
+    public bool CanSubmit => CanSave();
 
     public EditTemplateViewModel(ITemplateService templateService)
     {
@@ -85,13 +80,46 @@ public class EditTemplateViewModel : INotifyPropertyChanged
 
         AddColumnCommand = new RelayCommand(AddColumn);
         RemoveColumnCommand = new RelayCommand<ColumnItem>(RemoveColumn);
-        SaveTemplateCommand = new AsyncRelayCommand(SaveAsync, CanSave);
+
+        // Komenda korzysta z właściwości CanSubmit
+        SaveTemplateCommand = new AsyncRelayCommand(SaveAsync, () => CanSubmit);
         DeleteTemplateCommand = new AsyncRelayCommand(DeleteAsync, CanDelete);
+
+        Columns.CollectionChanged += OnColumnsChanged;
 
         LoadTemplatesAsync();
     }
 
-    // Load templates from DB
+    private void RefreshSaveState()
+    {
+        OnPropertyChanged(nameof(CanSubmit));
+        (SaveTemplateCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+    }
+
+    private void OnColumnsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        RefreshSaveState();
+    }
+
+    private bool IsDirty()
+    {
+        if (SelectedTemplate == null) return false;
+
+        bool nameChanged = TemplateName != SelectedTemplate.Name;
+        bool columnsRemoved = _removedColumns.Any();
+        bool columnsAdded = Columns.Any(c => !c.Id.HasValue);
+
+        return nameChanged || columnsRemoved || columnsAdded;
+    }
+
+    private bool CanSave()
+    {
+        return SelectedTemplate != null &&
+               !string.IsNullOrWhiteSpace(TemplateName) &&
+               Columns.Any() &&
+               IsDirty();
+    }
+
     private async void LoadTemplatesAsync()
     {
         var templates = await _templateService.GetAllTemplatesAsync();
@@ -103,7 +131,6 @@ public class EditTemplateViewModel : INotifyPropertyChanged
             SelectedTemplate = TemplateList.First();
     }
 
-    // Load template fields into Columns collection
     private async void LoadTemplateFields()
     {
         Columns.Clear();
@@ -113,24 +140,26 @@ public class EditTemplateViewModel : INotifyPropertyChanged
         var fullTemplate = await _templateService.GetTemplateAsync(SelectedTemplate.Id, includeFields: true);
         if (fullTemplate == null) return;
 
-        TemplateName = fullTemplate.Name;
+        _templateName = fullTemplate.Name; // Ustawiamy pole prywatne, żeby nie wywołać RefreshSaveState za wcześnie
+        OnPropertyChanged(nameof(TemplateName));
 
         foreach (var f in fullTemplate.Fields)
         {
             Columns.Add(new ColumnItem
             {
-                Id = f.Id, // Keep track of DB ID for deletion
+                Id = f.Id,
                 Name = f.Name,
                 DataType = f.FieldType
             });
         }
+
+        RefreshSaveState(); // Odśwież stan po załadowaniu (powinien być false)
     }
 
-    // Add a new column (will be added to DB on save)
     private void AddColumn()
     {
         if (string.IsNullOrWhiteSpace(NewColumnName)) return;
-        if (Columns.Any(c => c.Name.Equals(NewColumnName, System.StringComparison.OrdinalIgnoreCase))) return;
+        if (Columns.Any(c => c.Name.Equals(NewColumnName, StringComparison.OrdinalIgnoreCase))) return;
 
         Columns.Add(new ColumnItem
         {
@@ -138,34 +167,29 @@ public class EditTemplateViewModel : INotifyPropertyChanged
             DataType = SelectedFieldType
         });
         NewColumnName = string.Empty;
+        // RefreshSaveState wywoła się automatycznie przez OnColumnsChanged
     }
 
-    // Remove a column
     private void RemoveColumn(ColumnItem item)
     {
         if (!Columns.Contains(item)) return;
 
-        Columns.Remove(item);
-
-        // Only track for removal if it exists in DB (has Id)
         if (item.Id.HasValue)
             _removedColumns.Add(item);
+
+        Columns.Remove(item);
+        // RefreshSaveState wywoła się automatycznie przez OnColumnsChanged
     }
 
-    private bool CanSave() => SelectedTemplate != null && !string.IsNullOrWhiteSpace(TemplateName);
-
-    // Save template updates (name, new fields, removed fields)
     private async Task SaveAsync()
     {
-        if (SelectedTemplate == null) return;
+        if (!CanSave()) return;
 
         try
         {
-            // 1. Update template name
-            if (TemplateName != SelectedTemplate.Name)
+            if (TemplateName != SelectedTemplate!.Name)
                 await _templateService.UpdateTemplateAsync(SelectedTemplate.Id, TemplateName);
 
-            // 2. Delete removed columns from DB
             foreach (var removed in _removedColumns)
             {
                 if (removed.Id.HasValue)
@@ -173,47 +197,39 @@ public class EditTemplateViewModel : INotifyPropertyChanged
             }
             _removedColumns.Clear();
 
-            // 3. Add new columns to DB (those without Id are new)
             foreach (var col in Columns.Where(c => !c.Id.HasValue))
             {
                 var newField = await _templateService.AddFieldAsync(
-                    SelectedTemplate.Id,
-                    col.Name,
-                    col.DataType,
-                    isList: false);
-
-                col.Id = newField.Id; // assign new DB id
+                    SelectedTemplate.Id, col.Name, col.DataType, false);
+                col.Id = newField.Id;
             }
 
-            MessageBox.Show("Template saved successfully.");
-            LoadTemplateFields(); // reload to refresh IDs
+            MessageBox.Show("Template saved successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            CloseAction?.Invoke();
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error saving template: {ex.Message}");
+            MessageBox.Show($"Error saving template: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
     private bool CanDelete() => SelectedTemplate != null;
 
-    // Delete entire template
     private async Task DeleteAsync()
     {
         if (SelectedTemplate == null) return;
 
-        var result = MessageBox.Show($"Delete template '{TemplateName}'? This cannot be undone.",
-            "Confirm deletion", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+        var result = MessageBox.Show($"Delete template '{TemplateName}'?", "Confirm", MessageBoxButton.YesNo, MessageBoxImage.Warning);
         if (result != MessageBoxResult.Yes) return;
 
         try
         {
             await _templateService.DeleteTemplateAsync(SelectedTemplate.Id);
-            MessageBox.Show("Template deleted.");
             LoadTemplatesAsync();
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Cannot delete template: {ex.Message}");
+            MessageBox.Show($"Error: {ex.Message}");
         }
     }
 
@@ -221,4 +237,3 @@ public class EditTemplateViewModel : INotifyPropertyChanged
     protected void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
-

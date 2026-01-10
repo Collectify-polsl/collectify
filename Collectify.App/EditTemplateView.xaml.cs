@@ -5,10 +5,11 @@ namespace Collectify.App.Views;
 
 public partial class EditTemplateView : Window
 {
-    public EditTemplateView(EditTemplateViewModel vm)
+    public EditTemplateView(EditTemplateViewModel viewModel)
     {
         InitializeComponent();
-        DataContext = vm;
-        vm.CloseAction = Close;
+        this.DataContext = viewModel;
+
+        viewModel.CloseAction ??= () => this.Close();
     }
 }
