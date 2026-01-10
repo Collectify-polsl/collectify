@@ -24,12 +24,14 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     private readonly ITemplateService _templateService;
     private readonly ICollectionService _collectionService;
     private readonly Func<Collection, Window> _rowWizardFactory;
+
     private bool _isPopupView;
     public bool IsPopupView
     {
         get => _isPopupView;
         set { _isPopupView = value; OnPropertyChanged(); }
     }
+
     public record CollectionDisplayItem(int Id, string Name);
     public ObservableCollection<CollectionDisplayItem> CollectionList { get; } = new();
 
@@ -56,9 +58,9 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
             }
         }
     }
+
     private int? _itemToHighlight;
 
-    // Właściwość podpięta pod SelectedItem w XAML
     private DataRowView? _selectedRow;
     public DataRowView? SelectedRow
     {
@@ -70,15 +72,57 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         }
     }
 
+    // ============================================================================
+    // 1. nowe mozliwosci filtrowania
+    // ============================================================================
+    private string? _selectedFilterColumn;
+    public string? SelectedFilterColumn
+    {
+        get => _selectedFilterColumn;
+        set
+        {
+            _selectedFilterColumn = value;
+            OnPropertyChanged();
+            ApplyFilter();
+        }
+    }
+
+    private string? _filterText;
+    public string? FilterText
+    {
+        get => _filterText;
+        set
+        {
+            _filterText = value;
+            OnPropertyChanged();
+            ApplyFilter();
+        }
+    }
+
+    private ObservableCollection<string> _availableColumns = new();
+    public ObservableCollection<string> AvailableColumns
+    {
+        get => _availableColumns;
+        set
+        {
+            _availableColumns = value;
+            OnPropertyChanged();
+        }
+    }
+    // ============================================================================
+    // 1
+    // ============================================================================
+
     public ICommand AddNewElementCommand { get; }
     public ICommand ReturnCollectionsViewCommand { get; }
     public ICommand DeleteCollectionCommand { get; }
-    // Dodaj te pola i właściwości do klasy
     public ICommand NavigateToReferencedItemCommand { get; }
     public ICommand OpenFullImageCommand { get; }
 
 
-    
+    public ICommand ClearFilterCommand { get; }
+
+
     public record ReferenceValue(int Id);
     public Action<int>? SwitchCollectionAction { get; set; }
     public Action? NavigateBackAction { get; set; }
@@ -104,6 +148,10 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         NavigateToReferencedItemCommand = new RelayCommand<object>(NavigateToReferencedItem);
         OpenFullImageCommand = new RelayCommand<object>(OpenFullImage);
 
+    
+        ClearFilterCommand = new RelayCommand(ClearFilter);
+
+
         LoadDataAsync();
         LoadCollectionListAsync();
     }
@@ -114,6 +162,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         window.ShowDialog();
         LoadDataAsync();
     }
+
     private async void NavigateToReferencedItem(object? parameter)
     {
         if (parameter is not DataGridCell cell) return;
@@ -130,15 +179,12 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
                 if (itemId > 0)
                 {
-                    // 1. Pobieramy przedmiot i jego kolekcję
                     var targetItem = await _itemService.GetItemAsync(itemId);
                     if (targetItem == null) return;
 
                     var targetCollection = await _collectionService.GetCollectionAsync(targetItem.CollectionId);
                     if (targetCollection == null) return;
 
-
-                    // 2. Tworzymy nowy ViewModel dla tej kolekcji
                     var newVm = new SingleCollectionViewModel(
                         targetCollection,
                         _itemService,
@@ -146,27 +192,25 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
                         _collectionService,
                         _rowWizardFactory);
 
-                    // 3. Przekazujemy ID do podświetlenia w nowym oknie
                     newVm._itemToHighlight = itemId;
                     newVm.IsPopupView = true;
 
-                    // 4. Tworzymy nowe okno
                     var window = new Window
                     {
                         Title = $"Collection: {targetCollection.Name}",
-                        Width = 600, // Nieco szersze, żeby wygodnie oglądać tabelę
+                        Width = 600,
                         Height = 400,
                         Content = new SingleCollectionView { DataContext = newVm },
                         WindowStartupLocation = WindowStartupLocation.CenterScreen,
                         Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F0F2F5"))
                     };
 
-                    // 5. Wyświetlamy okno
                     window.Show();
                 }
             }
         }
     }
+
     private async Task LoadDataAsync()
     {
         try
@@ -178,7 +222,6 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
             DataTable table = new DataTable();
 
-            // --- ZMIANA 1: Dodajemy techniczną kolumnę Id ---
             table.Columns.Add("Id", typeof(int));
 
             var sortedFields = template.Fields.OrderBy(f => f.Id).ToList();
@@ -192,7 +235,6 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
             {
                 DataRow row = table.NewRow();
 
-                // --- ZMIANA 2: Przypisujemy Id przedmiotu do wiersza ---
                 row["Id"] = item.Id;
 
                 foreach (var field in sortedFields)
@@ -206,20 +248,31 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
             DynamicTable = table.DefaultView;
 
-            // --- ZMIANA 3: Logika szukania i podświetlania wiersza ---
+            // ============================================================================
+            // 4: lista kolumn dostepnych dla filtra
+            // ============================================================================
+            AvailableColumns.Clear();
+            foreach (DataColumn column in table.Columns)
+            {
+                if (column.ColumnName != "Id")
+                {
+                    AvailableColumns.Add(column.ColumnName);
+                }
+            }
+            // ============================================================================
+            // 4
+            // ============================================================================
+
             if (_itemToHighlight.HasValue)
             {
-                // Przeszukujemy nowo załadowaną tabelę
                 foreach (DataRowView rowView in DynamicTable)
                 {
                     if (Convert.ToInt32(rowView["Id"]) == _itemToHighlight.Value)
                     {
-                        // Ustawiamy SelectedRow – to spowoduje podświetlenie w DataGrid (przez Binding)
                         SelectedRow = rowView;
                         break;
                     }
                 }
-                // Czyścimy ID, żeby przy kolejnym (zwykłym) wejściu nie podświetlało nic starego
                 _itemToHighlight = null;
             }
         }
@@ -272,11 +325,8 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
     private Type GetTypeForField(FieldType type)
     {
-        // Obrazek musi zostać byte[], żeby szablony go rozpoznawały
         if (type == FieldType.Image) return typeof(byte[]);
 
-        // Dla pozostałych typów (Integer, Decimal, Reference) używamy object
-        // To pozwoli nam wstawić "-" tam, gdzie normalnie byłaby liczba
         return typeof(object);
     }
 
@@ -290,7 +340,6 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
             FieldType.Integer => value.IntValue,
             FieldType.Decimal => value.DecimalValue,
             FieldType.Date => value.DateValue?.ToString("dd/MM/yyyy"),
-            // ZAMIANA: Zamiast int, zwracamy specjalny obiekt
             FieldType.ItemReference => value.RelatedItemId.HasValue
                                        ? new ReferenceValue(value.RelatedItemId.Value)
                                        : null,
@@ -300,24 +349,91 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
         return result ?? "-";
     }
-    
+
+    // ============================================================================
+    // 5. metoda aplikowania fitlra
+    // ============================================================================
+    private void ApplyFilter()
+    {
+        if (DynamicTable == null) return;
+
+        if (string.IsNullOrWhiteSpace(SelectedFilterColumn) || string.IsNullOrWhiteSpace(FilterText))
+        {
+            DynamicTable.RowFilter = string.Empty;
+            return;
+        }
+
+        try
+        {
+            var column = DynamicTable.Table.Columns[SelectedFilterColumn];
+
+            if (column == null) return;
+
+            if (column.DataType == typeof(object) || column.DataType == typeof(string))
+            {
+                DynamicTable.RowFilter = $"Convert([{SelectedFilterColumn}], 'System.String') LIKE '%{FilterText.Replace("'", "''")}%'";
+            }
+            else if (column.DataType == typeof(int) || column.DataType == typeof(decimal))
+            {
+                if (decimal.TryParse(FilterText, out decimal numValue))
+                {
+                    DynamicTable.RowFilter = $"[{SelectedFilterColumn}] = {numValue}";
+                }
+                else
+                {
+                    DynamicTable.RowFilter = string.Empty;
+                }
+            }
+            else if (column.DataType == typeof(DateTime))
+            {
+                DynamicTable.RowFilter = $"Convert([{SelectedFilterColumn}], 'System.String') LIKE '%{FilterText.Replace("'", "''")}%'";
+            }
+            else if (column.DataType == typeof(byte[]))
+            {
+                DynamicTable.RowFilter = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Filter error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            DynamicTable.RowFilter = string.Empty;
+        }
+    }
+    // ============================================================================
+    // 5
+    // ============================================================================
+
+    // ============================================================================
+    // 6: dodalem metode czyszczenia filtra
+    // ============================================================================
+    private void ClearFilter()
+    {
+        SelectedFilterColumn = null;
+        FilterText = string.Empty;
+
+        if (DynamicTable != null)
+        {
+            DynamicTable.RowFilter = string.Empty;
+        }
+    }
+    // ============================================================================
+    // 6
+    // ============================================================================
+
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
     private void OpenFullImage(object? parameter)
     {
         byte[]? imageData = null;
 
-        // Przypadek 1: Parametr to bezpośrednio bajty
         if (parameter is byte[] bytes)
         {
             imageData = bytes;
         }
-        // Przypadek 2: Parametr to wiersz (częste w DataGridTemplateColumn)
         else if (parameter is DataRowView rowView)
         {
-            // Tutaj musimy wiedzieć, w której kolumnie jest obrazek. 
-            // Jeśli nie znamy nazwy, szukamy pierwszej kolumny typu byte[]
             foreach (DataColumn col in rowView.Row.Table.Columns)
             {
                 if (col.DataType == typeof(byte[]))
@@ -330,7 +446,6 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
         if (imageData == null || imageData.Length == 0) return;
 
-        // Tworzenie okna (Twój kod jest OK)
         var window = new Window
         {
             Title = "View Image",

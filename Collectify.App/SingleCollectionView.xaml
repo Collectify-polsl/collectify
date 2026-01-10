@@ -137,11 +137,13 @@
                            Foreground="#4B5563" 
                            FontWeight="SemiBold"
                            Margin="0,0,10,0"/>
-                
+
                 <ComboBox x:Name="FilterColumnComboBox"
                           Width="180" 
                           VerticalContentAlignment="Center"
-                          Margin="0,0,15,0">
+                          Margin="0,0,15,0"
+                          ItemsSource="{Binding AvailableColumns}"
+                          SelectedItem="{Binding SelectedFilterColumn}">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding}"/>
@@ -154,13 +156,14 @@
                            Foreground="#4B5563" 
                            FontWeight="SemiBold"
                            Margin="0,0,10,0"/>
-                
+
                 <TextBox x:Name="FilterTextBox"
                          Width="250"
                          Padding="8,6"
                          VerticalContentAlignment="Center"
                          BorderBrush="#D1D5DB"
-                         BorderThickness="1">
+                         BorderThickness="1"
+                         Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}">
                     <TextBox.Resources>
                         <Style TargetType="Border">
                             <Setter Property="CornerRadius" Value="4"/>
@@ -174,7 +177,8 @@
                         Background="#6B7280" 
                         Foreground="White"
                         BorderThickness="0"
-                        Cursor="Hand">
+                        Cursor="Hand"
+                        Command="{Binding ClearFilterCommand}">
                     <Button.Resources>
                         <Style TargetType="Border">
                             <Setter Property="CornerRadius" Value="4"/>
