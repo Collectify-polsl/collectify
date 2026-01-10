@@ -56,11 +56,11 @@
             </Grid>
 
             <DataTemplate.Triggers>
-                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridCell}, Path=Content.Text}" Value="-">
+                <DataTrigger Binding="{Binding}" Value="-">
                     <Setter TargetName="RefBtn" Property="Visibility" Value="Collapsed"/>
                     <Setter TargetName="DashText" Property="Visibility" Value="Visible"/>
                 </DataTrigger>
-                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridCell}, Path=Content.Text}" Value="">
+                <DataTrigger Binding="{Binding}" Value="">
                     <Setter TargetName="RefBtn" Property="Visibility" Value="Collapsed"/>
                     <Setter TargetName="DashText" Property="Visibility" Value="Visible"/>
                 </DataTrigger>
@@ -129,7 +129,6 @@
             </DockPanel>
         </Border>
 
-        <!-- Pasek filtrowania -->
         <Border Grid.Row="1" Background="White" BorderBrush="#D1D5DB" BorderThickness="0,0,0,1" Padding="15,10" Margin="0">
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="Filter by:" 

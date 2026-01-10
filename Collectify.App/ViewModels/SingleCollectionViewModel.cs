@@ -35,6 +35,8 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     public record CollectionDisplayItem(int Id, string Name);
     public ObservableCollection<CollectionDisplayItem> CollectionList { get; } = new();
 
+    private DataTable? _dataTableWithMetadata;
+
     private DataView _dynamicTable;
     public DataView DynamicTable
     {
@@ -72,9 +74,6 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         }
     }
 
-    // ============================================================================
-    // 1. nowe mozliwosci filtrowania
-    // ============================================================================
     private string? _selectedFilterColumn;
     public string? SelectedFilterColumn
     {
@@ -109,19 +108,13 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
             OnPropertyChanged();
         }
     }
-    // ============================================================================
-    // 1
-    // ============================================================================
 
     public ICommand AddNewElementCommand { get; }
     public ICommand ReturnCollectionsViewCommand { get; }
     public ICommand DeleteCollectionCommand { get; }
     public ICommand NavigateToReferencedItemCommand { get; }
     public ICommand OpenFullImageCommand { get; }
-
-
     public ICommand ClearFilterCommand { get; }
-
 
     public record ReferenceValue(int Id);
     public Action<int>? SwitchCollectionAction { get; set; }
@@ -147,10 +140,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         DeleteCollectionCommand = new RelayCommand(DeleteCollection);
         NavigateToReferencedItemCommand = new RelayCommand<object>(NavigateToReferencedItem);
         OpenFullImageCommand = new RelayCommand<object>(OpenFullImage);
-
-    
         ClearFilterCommand = new RelayCommand(ClearFilter);
-
 
         LoadDataAsync();
         LoadCollectionListAsync();
@@ -221,7 +211,6 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
             var items = await _itemService.GetItemsForCollectionAsync(_currentCollection.Id);
 
             DataTable table = new DataTable();
-
             table.Columns.Add("Id", typeof(int));
 
             var sortedFields = template.Fields.OrderBy(f => f.Id).ToList();
@@ -229,39 +218,52 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
             foreach (var field in sortedFields)
             {
                 table.Columns.Add(field.Name, GetTypeForField(field.FieldType));
+
+                if (field.FieldType == FieldType.ItemReference)
+                {
+                    table.Columns.Add($"{field.Name}_CollectionName", typeof(string));
+                }
             }
 
             foreach (var item in items)
             {
                 DataRow row = table.NewRow();
-
                 row["Id"] = item.Id;
 
                 foreach (var field in sortedFields)
                 {
                     var valObj = item.FieldValues.FirstOrDefault(v => v.FieldDefinitionId == field.Id);
                     row[field.Name] = GetRawValue(valObj, field.FieldType) ?? DBNull.Value;
+
+                    if (field.FieldType == FieldType.ItemReference && valObj?.RelatedItemId.HasValue == true)
+                    {
+                        var relatedItem = await _itemService.GetItemAsync(valObj.RelatedItemId.Value);
+                        if (relatedItem != null)
+                        {
+                            var relatedCollection = await _collectionService.GetCollectionAsync(relatedItem.CollectionId);
+                            row[$"{field.Name}_CollectionName"] = relatedCollection?.Name ?? string.Empty;
+                        }
+                        else
+                        {
+                            row[$"{field.Name}_CollectionName"] = string.Empty;
+                        }
+                    }
                 }
 
                 table.Rows.Add(row);
             }
 
+            _dataTableWithMetadata = table;
             DynamicTable = table.DefaultView;
 
-            // ============================================================================
-            // 4: lista kolumn dostepnych dla filtra
-            // ============================================================================
             AvailableColumns.Clear();
             foreach (DataColumn column in table.Columns)
             {
-                if (column.ColumnName != "Id")
+                if (column.ColumnName != "Id" && !column.ColumnName.EndsWith("_CollectionName") && column.DataType != typeof(byte[]))
                 {
                     AvailableColumns.Add(column.ColumnName);
                 }
             }
-            // ============================================================================
-            // 4
-            // ============================================================================
 
             if (_itemToHighlight.HasValue)
             {
@@ -326,7 +328,6 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     private Type GetTypeForField(FieldType type)
     {
         if (type == FieldType.Image) return typeof(byte[]);
-
         return typeof(object);
     }
 
@@ -350,12 +351,9 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         return result ?? "-";
     }
 
-    // ============================================================================
-    // 5. metoda aplikowania fitlra
-    // ============================================================================
     private void ApplyFilter()
     {
-        if (DynamicTable == null) return;
+        if (DynamicTable == null || _dataTableWithMetadata == null) return;
 
         if (string.IsNullOrWhiteSpace(SelectedFilterColumn) || string.IsNullOrWhiteSpace(FilterText))
         {
@@ -366,10 +364,16 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         try
         {
             var column = DynamicTable.Table.Columns[SelectedFilterColumn];
-
             if (column == null) return;
 
-            if (column.DataType == typeof(object) || column.DataType == typeof(string))
+            var metadataColumnName = $"{SelectedFilterColumn}_CollectionName";
+            var hasMetadataColumn = _dataTableWithMetadata.Columns.Contains(metadataColumnName);
+
+            if (column.DataType == typeof(object) && hasMetadataColumn)
+            {
+                DynamicTable.RowFilter = $"Convert([{metadataColumnName}], 'System.String') LIKE '%{FilterText.Replace("'", "''")}%'";
+            }
+            else if (column.DataType == typeof(object) || column.DataType == typeof(string))
             {
                 DynamicTable.RowFilter = $"Convert([{SelectedFilterColumn}], 'System.String') LIKE '%{FilterText.Replace("'", "''")}%'";
             }
@@ -399,13 +403,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
             DynamicTable.RowFilter = string.Empty;
         }
     }
-    // ============================================================================
-    // 5
-    // ============================================================================
 
-    // ============================================================================
-    // 6: dodalem metode czyszczenia filtra
-    // ============================================================================
     private void ClearFilter()
     {
         SelectedFilterColumn = null;
@@ -416,9 +414,6 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
             DynamicTable.RowFilter = string.Empty;
         }
     }
-    // ============================================================================
-    // 6
-    // ============================================================================
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? name = null)
