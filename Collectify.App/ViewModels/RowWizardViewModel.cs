@@ -68,11 +68,23 @@ public class RowWizardViewModel : INotifyPropertyChanged
     }
 
     private bool CanSubmit()
+        => Fields.All(IsFieldValueProvided);
+
+    private bool IsFieldValueProvided(FieldInputViewModel field)
     {
-        return Fields.All(f => 
-            f.Value != null && 
-            (!(f.Value is string s) || !string.IsNullOrWhiteSpace(s)) &&
-            (!(f.Value is byte[] bytes) || bytes.Length > 0));
+        if (field.FieldType == FieldType.ItemReference)
+            return true;
+
+        if (field.Value == null)
+            return false;
+
+        if (field.Value is string s)
+            return !string.IsNullOrWhiteSpace(s);
+
+        if (field.Value is byte[] bytes)
+            return bytes.Length > 0;
+
+        return true;
     }
 
     private async void InitializeAsync()
@@ -201,14 +213,11 @@ public class RowWizardViewModel : INotifyPropertyChanged
         {
             StatusMessage = string.Empty;
             
-            bool allFilled = Fields.All(f => 
-                f.Value != null && 
-                (!(f.Value is string s) || !string.IsNullOrWhiteSpace(s)) &&
-                (!(f.Value is byte[] bytes) || bytes.Length > 0));
+            bool requiredFieldsFilled = Fields.All(IsFieldValueProvided);
 
-            if (!allFilled)
+            if (!requiredFieldsFilled)
             {
-                StatusMessage = "Please fill in all fields to save the item.";
+                StatusMessage = "Please fill in all required fields to save the item.";
                 StatusType = StatusMessageType.Error;
                 return;
             }
