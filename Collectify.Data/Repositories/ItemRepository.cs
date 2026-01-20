@@ -14,6 +14,20 @@ public class ItemRepository : EfRepository<Item>, IItemRepository
         return await _dbSet
             .Where(i => i.CollectionId == collectionId)
             .Include(i => i.FieldValues)
+                .ThenInclude(v => v.References)
+            .Include(i => i.FieldValues)
+                .ThenInclude(v => v.RelatedItem)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<Item?> GetWithFieldValuesAsync(int itemId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Where(i => i.Id == itemId)
+            .Include(i => i.FieldValues)
+                .ThenInclude(v => v.References)
+            .Include(i => i.FieldValues)
+                .ThenInclude(v => v.RelatedItem)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 }

@@ -1,13 +1,14 @@
+using Collectify.App;
 using Collectify.App.Commands;
 using Collectify.Model.Collection;
 using Collectify.Model.Entities;
 using Collectify.Model.Enums;
 using Collectify.Model.InputModels;
 using Collectify.Model.Interfaces;
-using Collectify.App;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -24,11 +25,12 @@ public class RowWizardViewModel : INotifyPropertyChanged
     private readonly ITemplateService _templateService;
     private readonly ICollectionService _collectionService;
     private readonly Item? _existingItem;
+    private readonly Dictionary<int, Item> _itemsById = new();
 
     public Action? CloseAction { get; set; }
-    
+
     public ObservableCollection<FieldInputViewModel> Fields { get; } = new();
-    
+
     public Dictionary<string, List<Item>> ItemsByCollectionMap { get; } = new();
 
     private string _statusMessage = string.Empty;
@@ -50,9 +52,15 @@ public class RowWizardViewModel : INotifyPropertyChanged
     public ICommand SubmitRowCommand { get; }
     public ICommand UploadImageCommand { get; }
     public ICommand OpenReferencePickerCommand { get; }
+    public ICommand RemoveReferenceCommand { get; }
+    public ICommand ShowReferencesCommand { get; }
 
-    public RowWizardViewModel(Collection collection, IItemService itemService,
-                              ITemplateService templateService, ICollectionService collectionService, Item? existingItem = null)
+    public RowWizardViewModel(
+        Collection collection,
+        IItemService itemService,
+        ITemplateService templateService,
+        ICollectionService collectionService,
+        Item? existingItem = null)
     {
         _collection = collection;
         _itemService = itemService;
@@ -63,12 +71,13 @@ public class RowWizardViewModel : INotifyPropertyChanged
         SubmitRowCommand = new AsyncRelayCommand(SubmitRowAsync, CanSubmit);
         UploadImageCommand = new RelayCommand<FieldInputViewModel>(UploadImage);
         OpenReferencePickerCommand = new RelayCommand<FieldInputViewModel>(OpenReferencePicker);
+        RemoveReferenceCommand = new RelayCommand<ReferenceSelectionViewModel>(RemoveReference);
+        ShowReferencesCommand = new RelayCommand<FieldInputViewModel>(ShowReferences);
 
         InitializeAsync();
     }
 
-    private bool CanSubmit()
-        => Fields.All(IsFieldValueProvided);
+    private bool CanSubmit() => Fields.All(IsFieldValueProvided);
 
     private bool IsFieldValueProvided(FieldInputViewModel field)
     {
@@ -78,8 +87,8 @@ public class RowWizardViewModel : INotifyPropertyChanged
         if (field.Value == null)
             return false;
 
-        if (field.Value is string s)
-            return !string.IsNullOrWhiteSpace(s);
+        if (field.Value is string str)
+            return !string.IsNullOrWhiteSpace(str);
 
         if (field.Value is byte[] bytes)
             return bytes.Length > 0;
@@ -94,62 +103,43 @@ public class RowWizardViewModel : INotifyPropertyChanged
             var template = await _templateService.GetTemplateAsync(_collection.TemplateId, includeFields: true);
             if (template == null) return;
 
-            // Load Lookups for References
             var collections = await _collectionService.GetCollectionsAsync();
             ItemsByCollectionMap.Clear();
+            _itemsById.Clear();
+
             foreach (var col in collections)
             {
-                var items = await _itemService.GetItemsForCollectionAsync(col.Id);
-                ItemsByCollectionMap[col.Name] = items.ToList();
+                var items = (await _itemService.GetItemsForCollectionAsync(col.Id)).ToList();
+                ItemsByCollectionMap[col.Name] = items;
+                foreach (var item in items)
+                    _itemsById[item.Id] = item;
             }
 
             Fields.Clear();
-            foreach (var field in template.Fields)
+            foreach (var definition in template.Fields)
             {
-                var inputVM = new FieldInputViewModel
+                var input = new FieldInputViewModel
                 {
-                    FieldId = field.Id,
-                    FieldName = field.Name,
-                    FieldType = field.FieldType
+                    FieldId = definition.Id,
+                    FieldName = definition.Name,
+                    FieldType = definition.FieldType,
+                    AllowsMultipleReferences = definition.IsList
                 };
 
                 if (_existingItem != null)
                 {
-                    var valObj = _existingItem.FieldValues.FirstOrDefault(v => v.FieldDefinitionId == field.Id);
-                    if (valObj != null)
-                    {
-                        switch (field.FieldType)
-                        {
-                            case FieldType.Integer: inputVM.Value = valObj.IntValue; break;
-                            case FieldType.Decimal: inputVM.Value = valObj.DecimalValue; break;
-                            case FieldType.Date: inputVM.Value = valObj.DateValue; break;
-                            case FieldType.Image: inputVM.Value = valObj.ImageValue; break;
-                            case FieldType.ItemReference: 
-                                inputVM.Value = valObj.RelatedItemId;
-                                if (valObj.RelatedItemId.HasValue)
-                                {
-                                    var relatedItem = ItemsByCollectionMap.Values.SelectMany(x => x).FirstOrDefault(i => i.Id == valObj.RelatedItemId.Value);
-                                    if (relatedItem != null)
-                                    {
-                                        var firstText = relatedItem.FieldValues.FirstOrDefault(v => !string.IsNullOrEmpty(v.TextValue))?.TextValue;
-                                        inputVM.DisplayValue = firstText ?? $"Item #{relatedItem.Id}";
-                                    }
-                                }
-                                break;
-                            default: inputVM.Value = valObj.TextValue; break;
-                        }
-                    }
+                    var existingValue = _existingItem.FieldValues.FirstOrDefault(v => v.FieldDefinitionId == definition.Id);
+                    if (existingValue != null)
+                        PopulateExistingValue(input, definition, existingValue);
                 }
 
-                inputVM.PropertyChanged += (s, e) => 
+                input.PropertyChanged += (_, e) =>
                 {
                     if (e.PropertyName == nameof(FieldInputViewModel.Value))
-                    {
                         (SubmitRowCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
-                    }
                 };
 
-                Fields.Add(inputVM);
+                Fields.Add(input);
             }
         }
         catch (Exception ex)
@@ -159,45 +149,121 @@ public class RowWizardViewModel : INotifyPropertyChanged
         }
     }
 
+    private void PopulateExistingValue(FieldInputViewModel input, FieldDefinition definition, FieldValue value)
+    {
+        switch (definition.FieldType)
+        {
+            case FieldType.Integer:
+                input.Value = value.IntValue;
+                break;
+            case FieldType.Decimal:
+                input.Value = value.DecimalValue;
+                break;
+            case FieldType.Date:
+                input.Value = value.DateValue;
+                break;
+            case FieldType.Image:
+                input.Value = value.ImageValue;
+                break;
+            case FieldType.ItemReference:
+                if (definition.IsList)
+                {
+                    var ids = value.References?.Select(r => r.RelatedItemId).ToList() ?? new List<int>();
+                    ApplySelections(input, ids);
+                }
+                else
+                {
+                    input.Value = value.RelatedItemId;
+                    if (value.RelatedItemId.HasValue)
+                    {
+                        var item = GetItemById(value.RelatedItemId.Value);
+                        if (item != null)
+                            input.DisplayValue = BuildItemLabel(item);
+                    }
+                }
+                break;
+            default:
+                input.Value = value.TextValue;
+                break;
+        }
+    }
+
     private void OpenReferencePicker(FieldInputViewModel? field)
     {
-        if (field == null) return;
+        if (field == null || !field.IsReference) return;
 
-        var picker = new ReferencePickerWindow(ItemsByCollectionMap);
-        picker.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);    
+        var preselected = field.IsReferenceList
+            ? field.SelectedReferences.Select(r => r.ItemId).ToArray()
+            : field.Value is int current ? new[] { current } : Array.Empty<int>();
 
-        if (picker.ShowDialog() == true)
+        var picker = new ReferencePickerWindow(ItemsByCollectionMap, field.IsReferenceList, preselected.Any() ? preselected : null)
         {
-            field.Value = picker.SelectedItemId;
+            Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive)
+        };
 
-            if (picker.SelectedItemId.HasValue)
-            {
-                var selectedItem = ItemsByCollectionMap.Values.SelectMany(x => x).FirstOrDefault(i => i.Id == picker.SelectedItemId.Value);
-                if (selectedItem != null)
-                {
-                    var firstText = selectedItem.FieldValues.FirstOrDefault(v => !string.IsNullOrEmpty(v.TextValue))?.TextValue;
-                    field.DisplayValue = firstText ?? $"Item #{selectedItem.Id}";
-                }
-            }
+        if (picker.ShowDialog() != true)
+            return;
+
+        if (field.IsReferenceList)
+        {
+            ApplySelections(field, picker.SelectedItemIds ?? Array.Empty<int>());
+        }
+        else if (picker.SelectedItemId.HasValue)
+        {
+            var item = GetItemById(picker.SelectedItemId.Value);
+            UpdateSingleReference(field, item);
+        }
+    }
+
+    private void ApplySelections(FieldInputViewModel field, IReadOnlyCollection<int> ids)
+    {
+        if (!field.IsReferenceList)
+            return;
+
+        if (ids == null || ids.Count == 0)
+        {
+            field.ClearSelectedReferences();
+            return;
+        }
+
+        var references = ids
+            .Select(GetItemById)
+            .Where(item => item != null)
+            .Select(item => new ReferenceSelectionViewModel(field, item!.Id, BuildItemLabel(item!)))
+            .ToList();
+
+        field.ReplaceSelectedReferences(references);
+    }
+
+    private void UpdateSingleReference(FieldInputViewModel field, Item? item)
+    {
+        if (item == null)
+        {
+            field.Value = null;
+            field.DisplayValue = string.Empty;
+        }
+        else
+        {
+            field.Value = item.Id;
+            field.DisplayValue = BuildItemLabel(item);
         }
     }
 
     private void UploadImage(FieldInputViewModel? field)
     {
-        if (field == null) return;
+        if (field == null || !field.IsImage) return;
 
-        var openFileDialog = new Microsoft.Win32.OpenFileDialog
+        var dialog = new Microsoft.Win32.OpenFileDialog
         {
-            Filter = "Images|*.jpg;*.jpeg;*.png;*.bmp",
-            Title = "Select Item Image"
+            Title = "Select Item Image",
+            Filter = "Images|*.jpg;*.jpeg;*.png;*.bmp"
         };
 
-        if (openFileDialog.ShowDialog() == true)
+        if (dialog.ShowDialog() == true)
         {
             try
             {
-                byte[] imageBytes = System.IO.File.ReadAllBytes(openFileDialog.FileName);
-                field.Value = imageBytes;
+                field.Value = System.IO.File.ReadAllBytes(dialog.FileName);
             }
             catch (Exception ex)
             {
@@ -212,10 +278,8 @@ public class RowWizardViewModel : INotifyPropertyChanged
         try
         {
             StatusMessage = string.Empty;
-            
-            bool requiredFieldsFilled = Fields.All(IsFieldValueProvided);
 
-            if (!requiredFieldsFilled)
+            if (!Fields.All(IsFieldValueProvided))
             {
                 StatusMessage = "Please fill in all required fields to save the item.";
                 StatusType = StatusMessageType.Error;
@@ -226,100 +290,262 @@ public class RowWizardViewModel : INotifyPropertyChanged
 
             foreach (var field in Fields)
             {
-                if (field.Value == null) continue;
-                if (field.Value is string s && string.IsNullOrWhiteSpace(s)) continue;
+                if (field.FieldType == FieldType.ItemReference && field.IsReferenceList)
+                {
+                    var ids = field.SelectedReferences.Select(r => r.ItemId).Distinct().ToList();
+                    if (ids.Count == 0)
+                        continue;
+
+                    inputs.Add(new NewItemFieldValueInput
+                    {
+                        FieldDefinitionId = field.FieldId,
+                        RelatedItemIds = ids
+                    });
+
+                    continue;
+                }
+
+                if (field.Value == null)
+                    continue;
+
+                if (field.Value is string s && string.IsNullOrWhiteSpace(s))
+                    continue;
 
                 var input = new NewItemFieldValueInput { FieldDefinitionId = field.FieldId };
-                
-                try 
+
+                switch (field.FieldType)
                 {
-                    switch (field.FieldType)
-                    {
-                        case FieldType.Integer: 
-                            if (!int.TryParse(field.Value.ToString(), out int intVal))
-                                throw new Exception($"Field '{field.Name}' must be a valid whole number.");
-                            input.IntValue = intVal; 
-                            break;
-                        case FieldType.Decimal: 
-                            if (!decimal.TryParse(field.Value.ToString(), out decimal decVal))
-                                throw new Exception($"Field '{field.Name}' must be a valid decimal number.");
-                            input.DecimalValue = decVal; 
-                            break;
-                        case FieldType.Date: 
-                            input.DateValue = (DateTime)field.Value; 
-                            break;
-                        case FieldType.Image: 
-                            input.ImageValue = (byte[])field.Value; 
-                            break;
-                        case FieldType.ItemReference: 
-                            input.RelatedItemId = Convert.ToInt32(field.Value); 
-                            break;
-                        default: 
-                            input.TextValue = field.Value.ToString(); 
-                            break;
-                    }
-                    inputs.Add(input);
+                    case FieldType.Integer:
+                        if (!int.TryParse(field.Value.ToString(), out int intVal))
+                            throw new Exception($"Field '{field.Name}' must be a valid whole number.");
+                        input.IntValue = intVal;
+                        break;
+
+                    case FieldType.Decimal:
+                        if (!decimal.TryParse(field.Value.ToString(), out decimal decVal))
+                            throw new Exception($"Field '{field.Name}' must be a valid decimal number.");
+                        input.DecimalValue = decVal;
+                        break;
+
+                    case FieldType.Date:
+                        input.DateValue = (DateTime)field.Value;
+                        break;
+
+                    case FieldType.Image:
+                        input.ImageValue = (byte[])field.Value;
+                        break;
+
+                    case FieldType.ItemReference:
+                        input.RelatedItemId = Convert.ToInt32(field.Value);
+                        break;
+
+                    default:
+                        input.TextValue = field.Value.ToString();
+                        break;
                 }
-                catch (Exception ex)
-                {
-                    StatusMessage = ex.Message;
-                    StatusType = StatusMessageType.Error;
-                    return;
-                }
+
+                inputs.Add(input);
             }
 
             if (_existingItem != null)
             {
-                 await _itemService.UpdateItemAsync(_existingItem.Id, inputs, _existingItem.PreviousItemId, _existingItem.NextItemId);
-                 DialogResult = true; 
+                await _itemService.UpdateItemAsync(
+                    _existingItem.Id,
+                    inputs,
+                    _existingItem.PreviousItemId,
+                    _existingItem.NextItemId);
+
+                DialogResult = true;
             }
             else
             {
                 await _itemService.CreateItemAsync(_collection.Id, inputs, null, null);
                 DialogResult = true;
             }
-            
+
             CloseAction?.Invoke();
         }
-        catch (Exception ex) 
-        { 
+        catch (Exception ex)
+        {
             StatusMessage = $"Error saving item: {ex.Message}";
             StatusType = StatusMessageType.Error;
         }
     }
 
+    private void RemoveReference(ReferenceSelectionViewModel? selection)
+    {
+        if (selection?.Owner == null) return;
+        selection.Owner.SelectedReferences.Remove(selection);
+    }
+
+    private void ShowReferences(FieldInputViewModel? field)
+    {
+        if (field == null || !field.IsReference) return;
+
+        var items = field.IsReferenceList
+            ? field.SelectedReferences.Select(r => GetItemById(r.ItemId)).WhereNotNull().ToList()
+            : field.Value is int id ? GetItemById(id).Yield().WhereNotNull().ToList() : new List<Item>();
+
+        if (items.Count == 0)
+        {
+            MessageBox.Show("No items to display.", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var preview = new ReferencePreviewWindow(items)
+        {
+            Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive)
+        };
+
+        preview.ShowDialog();
+    }
+
+    private Item? GetItemById(int id) => _itemsById.TryGetValue(id, out var item) ? item : null;
+
+    private static string BuildItemLabel(Item item)
+        => item.FieldValues.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v.TextValue))?.TextValue
+           ?? $"Item #{item.Id}";
+
     public event PropertyChangedEventHandler? PropertyChanged;
-    protected void OnPropertyChanged([CallerMemberName] string? name = null)
-        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }
 
 public class FieldInputViewModel : INotifyPropertyChanged
 {
-    public int FieldId { get; set; }
-    public string Name => FieldName; // Alias for binding
-    public string FieldName { get; set; } = string.Empty;
-    public FieldType FieldType { get; set; }
-
+    private FieldType _fieldType;
     private object? _value;
+    private string _displayValue = string.Empty;
+    private bool _allowsMultipleReferences;
+
+    public FieldInputViewModel()
+    {
+        SelectedReferences.CollectionChanged += SelectedReferencesChanged;
+    }
+
+    public int FieldId { get; set; }
+    public string FieldName { get; set; } = string.Empty;
+    public string Name => FieldName;
+
+    public FieldType FieldType
+    {
+        get => _fieldType;
+        set
+        {
+            if (_fieldType == value) return;
+            _fieldType = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsText));
+            OnPropertyChanged(nameof(IsDate));
+            OnPropertyChanged(nameof(IsImage));
+            OnPropertyChanged(nameof(IsReference));
+            OnPropertyChanged(nameof(IsReferenceList));
+            OnPropertyChanged(nameof(IsReferenceSingle));
+            OnPropertyChanged(nameof(CanShowReferences));
+        }
+    }
+
+    public bool AllowsMultipleReferences
+    {
+        get => _allowsMultipleReferences;
+        set
+        {
+            if (_allowsMultipleReferences == value) return;
+            _allowsMultipleReferences = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsReferenceList));
+            OnPropertyChanged(nameof(IsReferenceSingle));
+            OnPropertyChanged(nameof(CanShowReferences));
+        }
+    }
+
     public object? Value
     {
         get => _value;
-        set { _value = value; OnPropertyChanged(); }
+        set
+        {
+            if (_value == value) return;
+            _value = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(CanShowReferences));
+        }
     }
 
-    private string _displayValue = string.Empty;
     public string DisplayValue
     {
         get => _displayValue;
-        set { _displayValue = value; OnPropertyChanged(); }
+        set
+        {
+            if (_displayValue == value) return;
+            _displayValue = value;
+            OnPropertyChanged();
+        }
     }
 
-    public bool IsText => FieldType == FieldType.Text || FieldType == FieldType.Integer || FieldType == FieldType.Decimal; 
+    public ObservableCollection<ReferenceSelectionViewModel> SelectedReferences { get; } = new();
+
+    public bool HasSelectedReferences => SelectedReferences.Any();
+
+    public bool IsText => FieldType == FieldType.Text || FieldType == FieldType.Integer || FieldType == FieldType.Decimal;
     public bool IsDate => FieldType == FieldType.Date;
     public bool IsImage => FieldType == FieldType.Image;
     public bool IsReference => FieldType == FieldType.ItemReference;
+    public bool IsReferenceList => IsReference && AllowsMultipleReferences;
+    public bool IsReferenceSingle => IsReference && !AllowsMultipleReferences;
+    public bool CanShowReferences =>
+        (IsReferenceSingle && Value is int) ||
+        (IsReferenceList && HasSelectedReferences);
+
+    public void ReplaceSelectedReferences(IEnumerable<ReferenceSelectionViewModel> references)
+    {
+        SelectedReferences.CollectionChanged -= SelectedReferencesChanged;
+        SelectedReferences.Clear();
+
+        foreach (var reference in references)
+            SelectedReferences.Add(reference);
+
+        SelectedReferences.CollectionChanged += SelectedReferencesChanged;
+        SelectedReferencesChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+    }
+
+    public void ClearSelectedReferences()
+    {
+        SelectedReferences.Clear();
+    }
+
+    private void SelectedReferencesChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        OnPropertyChanged(nameof(HasSelectedReferences));
+        OnPropertyChanged(nameof(CanShowReferences));
+    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
-    protected void OnPropertyChanged([CallerMemberName] string? name = null)
-        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }
+
+public class ReferenceSelectionViewModel
+{
+    public ReferenceSelectionViewModel(FieldInputViewModel owner, int itemId, string displayValue)
+    {
+        Owner = owner;
+        ItemId = itemId;
+        DisplayValue = displayValue;
+    }
+
+    public FieldInputViewModel Owner { get; }
+    public int ItemId { get; }
+    public string DisplayValue { get; }
+}
+
+internal static class EnumerableExtensions
+{
+    public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> source) where T : class
+        => source.Where(item => item != null)!;
+
+    public static IEnumerable<T> Yield<T>(this T? item) where T : class
+    {
+        if (item != null)
+            yield return item;
+    }
+}   

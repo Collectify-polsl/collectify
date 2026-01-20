@@ -106,15 +106,10 @@ public class ItemService : IItemService
 
     public async Task<Item?> GetItemAsync(int itemId, bool includeFieldValues = false, CancellationToken cancellationToken = default)
     {
-        Item? item = await _unitOfWork.Items.GetByIdAsync(itemId, cancellationToken);
+        if (includeFieldValues)
+            return await _unitOfWork.Items.GetWithFieldValuesAsync(itemId, cancellationToken);
 
-        if (item is not null && includeFieldValues)
-        {
-            var values = await _unitOfWork.FieldValues.FindAsync(v => v.ItemId == itemId, cancellationToken);
-            item.FieldValues = values.ToList();
-        }
-
-        return item;
+        return await _unitOfWork.Items.GetByIdAsync(itemId, cancellationToken);
     }
 
     public async Task<Item> UpdateItemAsync(int itemId, IReadOnlyList<NewItemFieldValueInput> fieldValues, int? previousItemId, int? nextItemId,
@@ -229,19 +224,19 @@ public class ItemService : IItemService
             .Distinct()
             .ToArray();
 
-        IReadOnlyList<FieldDefinition> definitions = await _unitOfWork.FieldDefinitions.FindAsync(d => definitionIds.Contains(d.Id),
-            cancellationToken);
+        IReadOnlyList<FieldDefinition> definitions = await _unitOfWork.FieldDefinitions
+            .FindAsync(d => definitionIds.Contains(d.Id), cancellationToken);
 
         Dictionary<int, FieldDefinition> definitionsById = definitions.ToDictionary(d => d.Id);
 
-        List<FieldValue> result = new List<FieldValue>();
+        List<FieldValue> result = new();
 
         foreach (NewItemFieldValueInput input in inputs)
         {
             if (!definitionsById.TryGetValue(input.FieldDefinitionId, out FieldDefinition? def))
                 throw new InvalidOperationException($"FieldDefinition with id {input.FieldDefinitionId} was not found.");
 
-            FieldValue fv = new FieldValue
+            FieldValue fv = new()
             {
                 Item = item,
                 FieldDefinitionId = def.Id
@@ -252,13 +247,11 @@ public class ItemService : IItemService
                 case FieldType.Text:
                     fv.TextValue = input.TextValue;
                     break;
-
                 case FieldType.Integer:
                     if (input.IntValue == null && !string.IsNullOrEmpty(input.TextValue))
                         throw new ArgumentException($"Field '{def.Name}' requires an integer value.");
                     fv.IntValue = input.IntValue;
                     break;
-
                 case FieldType.Decimal:
                     if (input.DecimalValue == null && input.IntValue != null)
                         fv.DecimalValue = Convert.ToDecimal(input.IntValue);
@@ -267,21 +260,32 @@ public class ItemService : IItemService
                     else
                         fv.DecimalValue = input.DecimalValue;
                     break;
-
                 case FieldType.Date:
                     if (input.DateValue == null && !string.IsNullOrEmpty(input.TextValue))
                         throw new ArgumentException($"Field '{def.Name}' requires a valid date.");
                     fv.DateValue = input.DateValue;
                     break;
-
                 case FieldType.ItemReference:
-                    fv.RelatedItemId = input.RelatedItemId;
+                    if (def.IsList)
+                    {
+                        var ids = input.RelatedItemIds ?? new List<int>();
+                        fv.References = ids
+                            .Distinct()
+                            .Select(id => new FieldValueReference
+                            {
+                                FieldValue = fv,
+                                RelatedItemId = id
+                            })
+                            .ToList();
+                    }
+                    else
+                    {
+                        fv.RelatedItemId = input.RelatedItemId;
+                    }
                     break;
-
                 case FieldType.Image:
                     fv.ImageValue = input.ImageValue;
                     break;
-
                 default:
                     throw new NotSupportedException($"Unsupported FieldType {def.FieldType}.");
             }

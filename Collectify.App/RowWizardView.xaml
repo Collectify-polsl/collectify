@@ -5,10 +5,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:converters="clr-namespace:Collectify.App.Converters"
         mc:Ignorable="d"
-        Title="Add Item" Height="500" Width="600" 
-        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Title="Add Item"
+        Height="520"
+        Width="620"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
         Background="{StaticResource AppBackgroundBrush}">
-    
+
     <Window.Resources>
         <converters:BytesToImageConverter x:Key="BytesToImageConverter"/>
     </Window.Resources>
@@ -20,35 +23,138 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="Item Details" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextBrush}" Margin="0,0,0,15"/>
+        <TextBlock Text="Item Details"
+                   FontSize="18"
+                   FontWeight="Bold"
+                   Foreground="{StaticResource TextBrush}"
+                   Margin="0,0,0,15"/>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <ScrollViewer Grid.Row="1"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
             <ItemsControl ItemsSource="{Binding Fields}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Background="{StaticResource SurfaceBrush}" CornerRadius="4" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" Margin="0,0,0,10" Padding="10">
+                        <Border Background="{StaticResource SurfaceBrush}"
+                                CornerRadius="4"
+                                BorderBrush="{StaticResource AppBorderBrush}"
+                                BorderThickness="1"
+                                Margin="0,0,0,10"
+                                Padding="10">
                             <StackPanel>
-                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" Margin="0,0,0,5"/>
-                                
-                                <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Padding="5"
+                                <TextBlock Text="{Binding Name}"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextBrush}"
+                                           Margin="0,0,0,5"/>
+
+                                <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                                         Padding="5"
                                          Visibility="{Binding IsText, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-                                <DatePicker SelectedDate="{Binding Value, Mode=TwoWay}" Padding="5"
+                                <DatePicker SelectedDate="{Binding Value, Mode=TwoWay}"
+                                            Padding="5"
                                             Visibility="{Binding IsDate, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding IsReference, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                    <TextBox Text="{Binding DisplayValue}" IsReadOnly="True" Width="200" Padding="5" Background="#F3F4F6"/>
-                                    <Button Content="Select..." Margin="10,0,0,0" Padding="15,5"
-                                            Style="{StaticResource SecondaryButtonStyle}"
-                                            VerticalAlignment="Center"
-                                            Command="{Binding DataContext.OpenReferencePickerCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                            CommandParameter="{Binding}"/>
+                                <StackPanel Orientation="Vertical"
+                                            Visibility="{Binding IsReference, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <StackPanel Orientation="Horizontal"
+                                                VerticalAlignment="Center">
+                                        <TextBox Text="{Binding DisplayValue}"
+                                                 IsReadOnly="True"
+                                                 Width="220"
+                                                 Padding="5"
+                                                 Background="#F3F4F6"
+                                                 Visibility="{Binding IsReferenceSingle, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                                        <Button Content="Select..."
+                                                Margin="0,0,0,0"
+                                                Padding="15,5"
+                                                Style="{StaticResource SecondaryButtonStyle}"
+                                                Command="{Binding DataContext.OpenReferencePickerCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"/>
+
+                                        <Button Content="Show Item(s)"
+                                                Margin="10,0,0,0"
+                                                Padding="15,5"
+                                                Style="{StaticResource SecondaryButtonStyle}"
+                                                Command="{Binding DataContext.ShowReferencesCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"
+                                                Visibility="{Binding IsReference, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                IsEnabled="{Binding CanShowReferences}"/>
+                                    </StackPanel>
+
+                                <ItemsControl ItemsSource="{Binding SelectedReferences}">
+                                    <ItemsControl.Style>
+                                        <Style TargetType="ItemsControl">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding IsReferenceList}" Value="True"/>
+                                                        <Condition Binding="{Binding HasSelectedReferences}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ItemsControl.Style>
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Margin="0,5,0,0" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#E5E7EB"
+                                                    CornerRadius="4"
+                                                    Padding="6"
+                                                    Margin="0,5,5,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding DisplayValue}"
+                                                               Foreground="{StaticResource TextBrush}"
+                                                               Margin="0,0,8,0"/>
+                                                    <Button Content="×"
+                                                            Width="20"
+                                                            Height="20"
+                                                            Padding="0"
+                                                            Style="{StaticResource BaseButtonStyle}"
+                                                            Command="{Binding DataContext.RemoveReferenceCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding}"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <TextBlock Text="No items selected yet."
+                                           Foreground="{StaticResource SubTextBrush}"
+                                           FontStyle="Italic"
+                                           Margin="0,5,0,0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding IsReferenceList}" Value="True"/>
+                                                        <Condition Binding="{Binding HasSelectedReferences}" Value="False"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
                                 </StackPanel>
 
                                 <StackPanel Visibility="{Binding IsImage, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                    <Image Source="{Binding Value, Converter={StaticResource BytesToImageConverter}}" 
-                                           Height="100" Stretch="Uniform" HorizontalAlignment="Left" Margin="0,0,0,5"/>
-                                    <Button Content="Upload Image..." HorizontalAlignment="Left"
+                                    <Image Source="{Binding Value, Converter={StaticResource BytesToImageConverter}}"
+                                           Height="110"
+                                           Stretch="Uniform"
+                                           HorizontalAlignment="Left"
+                                           Margin="0,0,0,5"/>
+                                    <Button Content="Upload Image..."
+                                            HorizontalAlignment="Left"
                                             Style="{StaticResource SecondaryButtonStyle}"
                                             Command="{Binding DataContext.UploadImageCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                             CommandParameter="{Binding}"/>
@@ -60,8 +166,11 @@
             </ItemsControl>
         </ScrollViewer>
 
-        <StackPanel Grid.Row="2" Margin="0,15,0,0">
-            <Border Margin="0,0,0,10" Padding="10" CornerRadius="4" 
+        <StackPanel Grid.Row="2"
+                    Margin="0,15,0,0">
+            <Border Margin="0,0,0,10"
+                    Padding="10"
+                    CornerRadius="4"
                     Visibility="{Binding StatusMessage, Converter={x:Static converters:StringToVisibilityConverter.Instance}}">
                 <Border.Style>
                     <Style TargetType="Border">
@@ -76,10 +185,16 @@
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
-                <TextBlock Text="{Binding StatusMessage}" Foreground="White" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                <TextBlock Text="{Binding StatusMessage}"
+                           Foreground="White"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Center"/>
             </Border>
 
-            <TextBlock FontSize="11" Foreground="{StaticResource DangerBrush}" Margin="0,0,0,5" HorizontalAlignment="Right"
+            <TextBlock FontSize="11"
+                       Foreground="{StaticResource DangerBrush}"
+                       HorizontalAlignment="Right"
+                       Margin="0,0,0,5"
                        Text="Please fill in all fields to save the item.">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock">
@@ -93,9 +208,18 @@
                 </TextBlock.Style>
             </TextBlock>
 
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="Cancel" IsCancel="True" Margin="0,0,10,0" Style="{StaticResource SecondaryButtonStyle}" Width="100"/>
-                <Button x:Name="SaveBtn" Content="Save Item" Command="{Binding SubmitRowCommand}" Style="{StaticResource PrimaryButtonStyle}" Width="120"/>
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right">
+                <Button Content="Cancel"
+                        IsCancel="True"
+                        Margin="0,0,10,0"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        Width="110"/>
+                <Button x:Name="SaveBtn"
+                        Content="Save Item"
+                        Command="{Binding SubmitRowCommand}"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Width="140"/>
             </StackPanel>
         </StackPanel>
     </Grid>

@@ -1,16 +1,17 @@
-using Collectify.App.Commands;
 using Collectify.App;
+using Collectify.App.Commands;
+using Collectify.Model.Entities;
 using Collectify.Model.Enums;
 using Collectify.Model.Interfaces;
-using Collectify.Model.Entities;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using System.Linq;
-using System.Threading.Tasks;
-using System;
 
 namespace Collectify.App.ViewModels;
 
@@ -117,7 +118,9 @@ public class NewCollectionViewModel : INotifyPropertyChanged
                 DisplayedColumns.Add(new ColumnItem
                 {
                     Name = field.Name,
-                    DataType = field.FieldType
+                    DataType = field.FieldType,
+                    IsList = field.IsList,
+                    InitialIsList = field.IsList
                 });
             }
         }
@@ -156,9 +159,66 @@ public class NewCollectionViewModel : INotifyPropertyChanged
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
-public class ColumnItem
+public class ColumnItem : INotifyPropertyChanged
 {
-    public int? Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public FieldType DataType { get; set; }
+    private int? _id;
+    private string _name = string.Empty;
+    private FieldType _dataType;
+    private bool _isList;
+    private bool _initialIsList;
+
+    public int? Id
+    {
+        get => _id;
+        set => SetField(ref _id, value);
+    }
+
+    public string Name
+    {
+        get => _name;
+        set => SetField(ref _name, value);
+    }
+
+    public FieldType DataType
+    {
+        get => _dataType;
+        set => SetField(ref _dataType, value);
+    }
+
+    public bool IsList
+    {
+        get => _isList;
+        set
+        {
+            if (SetField(ref _isList, value))
+                OnPropertyChanged(nameof(HasListChange));
+        }
+    }
+
+    public bool InitialIsList
+    {
+        get => _initialIsList;
+        set
+        {
+            if (SetField(ref _initialIsList, value))
+                OnPropertyChanged(nameof(HasListChange));
+        }
+    }
+
+    public bool HasListChange => Id.HasValue && IsList != InitialIsList;
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(field, value))
+            return false;
+
+        field = value;
+        OnPropertyChanged(propertyName);
+        return true;
+    }
+
+    protected void OnPropertyChanged(string? name)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }

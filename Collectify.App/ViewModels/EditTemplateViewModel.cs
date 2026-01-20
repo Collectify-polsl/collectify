@@ -1,11 +1,9 @@
+using Collectify.App;
 using Collectify.App.Commands;
 using Collectify.Model.Entities;
 using Collectify.Model.Enums;
-using Collectify.Model.InputModels;
 using Collectify.Model.Interfaces;
-using Collectify.App;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -19,6 +17,8 @@ namespace Collectify.App.ViewModels;
 
 public class EditTemplateViewModel : INotifyPropertyChanged
 {
+    private const string ReferenceFieldName = "itemReference";
+
     private readonly ITemplateService _templateService;
 
     public Action? CloseAction { get; set; }
@@ -74,10 +74,52 @@ public class EditTemplateViewModel : INotifyPropertyChanged
     };
 
     private string _newColumnName = string.Empty;
-    public string NewColumnName { get => _newColumnName; set { _newColumnName = value; OnPropertyChanged(); } }
+    public string NewColumnName
+    {
+        get => _newColumnName;
+        set => SetNewColumnName(value);
+    }
+
+    private bool _newColumnAllowsMultiple;
+    public bool NewColumnAllowsMultiple
+    {
+        get => _newColumnAllowsMultiple;
+        set
+        {
+            if (_newColumnAllowsMultiple == value) return;
+            _newColumnAllowsMultiple = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool ShowMultiReferenceToggle => SelectedFieldType == FieldType.ItemReference;
+
+    public bool IsColumnNameReadOnly => SelectedFieldType == FieldType.ItemReference;
 
     private FieldType _selectedFieldType = FieldType.Text;
-    public FieldType SelectedFieldType { get => _selectedFieldType; set { _selectedFieldType = value; OnPropertyChanged(); } }
+    public FieldType SelectedFieldType
+    {
+        get => _selectedFieldType;
+        set
+        {
+            if (_selectedFieldType == value) return;
+
+            _selectedFieldType = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsColumnNameReadOnly));
+            OnPropertyChanged(nameof(ShowMultiReferenceToggle));
+
+            if (value == FieldType.ItemReference)
+            {
+                SetNewColumnName(ReferenceFieldName);
+            }
+            else
+            {
+                SetNewColumnName(string.Empty);
+                NewColumnAllowsMultiple = false;
+            }
+        }
+    }
 
     private readonly ObservableCollection<ColumnItem> _removedColumns = new();
 
@@ -92,7 +134,7 @@ public class EditTemplateViewModel : INotifyPropertyChanged
     {
         _templateService = templateService;
 
-        AddColumnCommand = new RelayCommand(AddColumn);
+        AddColumnCommand = new RelayCommand(AddColumn, CanAddColumn);
         RemoveColumnCommand = new RelayCommand<ColumnItem>(RemoveColumn);
 
         SaveTemplateCommand = new AsyncRelayCommand(SaveAsync, () => CanSubmit);
@@ -111,7 +153,28 @@ public class EditTemplateViewModel : INotifyPropertyChanged
 
     private void OnColumnsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        if (e.NewItems != null)
+        {
+            foreach (ColumnItem column in e.NewItems)
+                column.PropertyChanged += ColumnOnPropertyChanged;
+        }
+
+        if (e.OldItems != null)
+        {
+            foreach (ColumnItem column in e.OldItems)
+                column.PropertyChanged -= ColumnOnPropertyChanged;
+        }
+
         RefreshSaveState();
+    }
+
+    private void ColumnOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ColumnItem.IsList) ||
+            e.PropertyName == nameof(ColumnItem.HasListChange))
+        {
+            RefreshSaveState();
+        }
     }
 
     private bool IsDirty()
@@ -121,8 +184,9 @@ public class EditTemplateViewModel : INotifyPropertyChanged
         bool nameChanged = TemplateName != SelectedTemplate.Name;
         bool columnsRemoved = _removedColumns.Any();
         bool columnsAdded = Columns.Any(c => !c.Id.HasValue);
+        bool listChanged = Columns.Any(c => c.HasListChange);
 
-        return nameChanged || columnsRemoved || columnsAdded;
+        return nameChanged || columnsRemoved || columnsAdded || listChanged;
     }
 
     private bool CanSave()
@@ -146,6 +210,9 @@ public class EditTemplateViewModel : INotifyPropertyChanged
 
     private async void LoadTemplateFields()
     {
+        foreach (var column in Columns)
+            column.PropertyChanged -= ColumnOnPropertyChanged;
+
         Columns.Clear();
         _removedColumns.Clear();
         if (SelectedTemplate == null) return;
@@ -158,28 +225,43 @@ public class EditTemplateViewModel : INotifyPropertyChanged
 
         foreach (var f in fullTemplate.Fields)
         {
-            Columns.Add(new ColumnItem
+            var column = new ColumnItem
             {
                 Id = f.Id,
                 Name = f.Name,
-                DataType = f.FieldType
-            });
+                DataType = f.FieldType,
+                IsList = f.IsList,
+                InitialIsList = f.IsList
+            };
+            column.PropertyChanged += ColumnOnPropertyChanged;
+            Columns.Add(column);
         }
 
         RefreshSaveState();
     }
 
+    private bool CanAddColumn() =>
+        !string.IsNullOrWhiteSpace(NewColumnName) &&
+        !Columns.Any(c => c.Name.Equals(NewColumnName, StringComparison.OrdinalIgnoreCase));
+
     private void AddColumn()
     {
-        if (string.IsNullOrWhiteSpace(NewColumnName)) return;
-        if (Columns.Any(c => c.Name.Equals(NewColumnName, StringComparison.OrdinalIgnoreCase))) return;
+        if (!CanAddColumn()) return;
 
-        Columns.Add(new ColumnItem
+        bool isList = SelectedFieldType == FieldType.ItemReference && NewColumnAllowsMultiple;
+
+        var column = new ColumnItem
         {
-            Name = NewColumnName.Trim(),
-            DataType = SelectedFieldType
-        });
-        NewColumnName = string.Empty;
+            Name = NewColumnName,
+            DataType = SelectedFieldType,
+            IsList = isList,
+            InitialIsList = isList
+        };
+        column.PropertyChanged += ColumnOnPropertyChanged;
+        Columns.Add(column);
+
+        SetNewColumnName(string.Empty);
+        NewColumnAllowsMultiple = false;
     }
 
     private void RemoveColumn(ColumnItem item)
@@ -189,6 +271,7 @@ public class EditTemplateViewModel : INotifyPropertyChanged
         if (item.Id.HasValue)
             _removedColumns.Add(item);
 
+        item.PropertyChanged -= ColumnOnPropertyChanged;
         Columns.Remove(item);
     }
 
@@ -212,10 +295,19 @@ public class EditTemplateViewModel : INotifyPropertyChanged
             foreach (var col in Columns.Where(c => !c.Id.HasValue))
             {
                 var newField = await _templateService.AddFieldAsync(
-                    SelectedTemplate.Id, col.Name, col.DataType, false);
+                    SelectedTemplate.Id, col.Name, col.DataType, col.IsList);
                 col.Id = newField.Id;
+                col.InitialIsList = col.IsList;
             }
 
+            var changedColumns = Columns.Where(c => c.HasListChange).ToList();
+            foreach (var column in changedColumns)
+            {
+                await _templateService.UpdateFieldAsync(column.Id!.Value, column.IsList);
+                column.InitialIsList = column.IsList;
+            }
+
+            RefreshSaveState();
             CloseAction?.Invoke();
         }
         catch (Exception ex)
@@ -250,6 +342,21 @@ public class EditTemplateViewModel : INotifyPropertyChanged
             StatusType = StatusMessageType.Error;
         }
     }
+
+    private void SetNewColumnName(string? value)
+    {
+        var normalized = NormalizeColumnName(value);
+        if (_newColumnName == normalized) return;
+
+        _newColumnName = normalized;
+        OnPropertyChanged(nameof(NewColumnName));
+        (AddColumnCommand as RelayCommand)?.RaiseCanExecuteChanged();
+    }
+
+    private string NormalizeColumnName(string? value) =>
+        SelectedFieldType == FieldType.ItemReference
+            ? ReferenceFieldName
+            : (value ?? string.Empty).Trim();
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? name = null)

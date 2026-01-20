@@ -1,4 +1,6 @@
-﻿namespace Collectify.Model.InputModels;
+﻿using System.Collections.Generic;
+
+namespace Collectify.Model.InputModels;
 
 /// <summary>
 /// Describes a single field value when creating a new item.
@@ -21,4 +23,6 @@ public class NewItemFieldValueInput
     public byte[]? ImageValue { get; set; }
 
     public int? RelatedItemId { get; set; }
+
+    public List<int>? RelatedItemIds { get; set; }
 }

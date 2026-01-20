@@ -35,6 +35,11 @@ public class CollectifyContext(DbContextOptions<CollectifyContext> options) : Db
     public DbSet<FieldValue> Values { get; set; } = null!;
 
     /// <summary>
+    /// DbSet representing all field value references.
+    /// </summary>
+    public DbSet<FieldValueReference> FieldValueReferences { get; set; } = null!;
+
+    /// <summary>
     /// Configures the model by applying entity specific mappings and relationships.
     /// </summary>
     /// <param name="modelBuilder">Model builder used to configure entity types.</param>
@@ -47,6 +52,7 @@ public class CollectifyContext(DbContextOptions<CollectifyContext> options) : Db
         ConfigureCollection(modelBuilder);
         ConfigureItem(modelBuilder);
         ConfigureFieldValues(modelBuilder);
+        ConfigureFieldValueReferences(modelBuilder);
     }
 
     /// <summary>
@@ -178,10 +184,40 @@ public class CollectifyContext(DbContextOptions<CollectifyContext> options) : Db
             .HasForeignKey(x => x.RelatedItemId)
             .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasMany(x => x.References)
+            .WithOne(r => r.FieldValue)
+            .HasForeignKey(r => r.FieldValueId)
+            .OnDelete(DeleteBehavior.Cascade);
+
             entity.HasIndex(x => new { x.ItemId, x.FieldDefinitionId })
             .IsUnique();
 
             entity.HasIndex(x => x.FieldDefinitionId);
+        });
+    }
+
+    /// <summary>
+    /// Configures the FieldValueReference entity, including keys, relationships and indexes.
+    /// </summary>
+    /// <param name="modelBuilder">Model builder used to configure the entity.</param>
+    private static void ConfigureFieldValueReferences(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<FieldValueReference>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.HasOne(x => x.FieldValue)
+            .WithMany(v => v.References)
+            .HasForeignKey(x => x.FieldValueId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.RelatedItem)
+            .WithMany()
+            .HasForeignKey(x => x.RelatedItemId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => new { x.FieldValueId, x.RelatedItemId })
+            .IsUnique();
         });
     }
 }

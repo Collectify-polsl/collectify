@@ -1,26 +1,28 @@
-using Collectify.App.Commands;
 using Collectify.App;
+using Collectify.App.Commands;
 using Collectify.Model.Enums;
 using Collectify.Model.InputModels;
 using Collectify.Model.Interfaces;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using System.Windows;
-using System.Windows.Input;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using System.Windows.Input;
 
 namespace Collectify.App.ViewModels;
 
 public class NewTemplateViewModel : INotifyPropertyChanged
 {
+    private const string ReferenceFieldName = "itemReference";
+    private const string DefaultStatusMessage = "Ready";
+
     private readonly ITemplateService _templateService;
 
     public Action? CloseAction { get; set; }
 
-    private string _statusMessage = string.Empty;
+    private string _statusMessage = DefaultStatusMessage;
     public string StatusMessage
     {
         get => _statusMessage;
@@ -51,13 +53,24 @@ public class NewTemplateViewModel : INotifyPropertyChanged
     public string NewColumnName
     {
         get => _newColumnName;
+        set => SetNewColumnName(value);
+    }
+
+    private bool _allowMultipleReferences;
+    public bool AllowMultipleReferences
+    {
+        get => _allowMultipleReferences;
         set
         {
-            _newColumnName = value;
+            if (_allowMultipleReferences == value) return;
+            _allowMultipleReferences = value;
             OnPropertyChanged();
-            (AddColumnCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
     }
+
+    public bool ShowMultipleReferenceToggle => SelectedFieldType == FieldType.ItemReference;
+
+    public bool IsColumnNameReadOnly => SelectedFieldType == FieldType.ItemReference;
 
     public ObservableCollection<FieldType> DataTypeList { get; } = new()
     {
@@ -73,7 +86,25 @@ public class NewTemplateViewModel : INotifyPropertyChanged
     public FieldType SelectedFieldType
     {
         get => _selectedFieldType;
-        set { _selectedFieldType = value; OnPropertyChanged(); }
+        set
+        {
+            if (_selectedFieldType == value) return;
+
+            _selectedFieldType = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsColumnNameReadOnly));
+            OnPropertyChanged(nameof(ShowMultipleReferenceToggle));
+
+            if (value == FieldType.ItemReference)
+            {
+                SetNewColumnName(ReferenceFieldName);
+            }
+            else
+            {
+                SetNewColumnName(string.Empty);
+                AllowMultipleReferences = false;
+            }
+        }
     }
 
     public string? ErrorMessage => CanSave() ? null : "Please fill in all fields.";
@@ -102,16 +133,24 @@ public class NewTemplateViewModel : INotifyPropertyChanged
     private bool CanAddColumn() =>
         !string.IsNullOrWhiteSpace(NewColumnName) &&
         !Columns.Any(c =>
-            c.Name.Equals(NewColumnName.Trim(), StringComparison.OrdinalIgnoreCase));
+            c.Name.Equals(NewColumnName, StringComparison.OrdinalIgnoreCase));
 
     private void AddColumn()
     {
+        if (!CanAddColumn()) return;
+
+        bool isList = SelectedFieldType == FieldType.ItemReference && AllowMultipleReferences;
+
         Columns.Add(new ColumnItem
         {
-            Name = NewColumnName.Trim(),
-            DataType = SelectedFieldType
+            Name = NewColumnName,
+            DataType = SelectedFieldType,
+            IsList = isList,
+            InitialIsList = isList
         });
-        NewColumnName = string.Empty;
+
+        SetNewColumnName(string.Empty);
+        AllowMultipleReferences = false;
     }
 
     private void RemoveColumn(ColumnItem column)
@@ -134,7 +173,7 @@ public class NewTemplateViewModel : INotifyPropertyChanged
                 {
                     Name = c.Name,
                     FieldType = c.DataType,
-                    IsList = false
+                    IsList = c.IsList
                 }).ToList();
 
             await _templateService.CreateTemplateAsync(TemplateName, fields);
@@ -147,6 +186,21 @@ public class NewTemplateViewModel : INotifyPropertyChanged
             StatusType = StatusMessageType.Error;
         }
     }
+
+    private void SetNewColumnName(string? value)
+    {
+        var normalized = NormalizeColumnName(value);
+        if (_newColumnName == normalized) return;
+
+        _newColumnName = normalized;
+        OnPropertyChanged(nameof(NewColumnName));
+        (AddColumnCommand as RelayCommand)?.RaiseCanExecuteChanged();
+    }
+
+    private string NormalizeColumnName(string? value) =>
+        SelectedFieldType == FieldType.ItemReference
+            ? ReferenceFieldName
+            : (value ?? string.Empty).Trim();
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? name = null)
