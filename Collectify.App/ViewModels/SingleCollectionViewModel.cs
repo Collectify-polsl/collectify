@@ -130,6 +130,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     public ICommand EditCollectionCommand { get; }
     public ICommand EditItemCommand { get; }
     public ICommand RefreshCommand { get; }
+    public ICommand ShowReferencingItemsCommand { get; }
 
     private string _statusMessage = string.Empty;
     public string StatusMessage
@@ -193,6 +194,8 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         EditCollectionCommand = new AsyncRelayCommand(EditCollectionAsync);
         EditItemCommand = new RelayCommand(EditSelectedItem, () => SelectedRow != null);
         RefreshCommand = new AsyncRelayCommand(LoadDataAsync);
+
+        ShowReferencingItemsCommand = new RelayCommand<object>(ShowReferencingItems);
 
         LoadDataAsync();
         LoadCollectionListAsync();
@@ -462,9 +465,16 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
             FieldType.Integer => value.IntValue,
             FieldType.Decimal => value.DecimalValue,
             FieldType.Date => value.DateValue?.ToString("dd/MM/yyyy"),
-            FieldType.ItemReference => value.RelatedItemId.HasValue
-                                       ? new ReferenceValue(value.RelatedItemId.Value)
-                                       : null,
+
+            FieldType.ItemReference =>
+                // single reference
+                value.RelatedItemId.HasValue
+                    ? new ReferenceValue(value.RelatedItemId.Value)
+                    // list reference: return a non "-" value so the buttons appear
+                    : (value.References != null && value.References.Count > 0)
+                        ? new ReferenceValue(value.References.First().RelatedItemId)
+                        : null,
+
             FieldType.Text => value.TextValue,
             _ => null
         };
@@ -589,6 +599,41 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         catch (Exception ex)
         {
              ShowStatus($"Could not open image preview: {ex.Message}", StatusMessageType.Error);
+        }
+    }
+
+    private async void ShowReferencingItems(object? parameter)
+    {
+        try
+        {
+            if (parameter is not DataGridCell cell) return;
+            if (cell.DataContext is not DataRowView rowView) return;
+
+            int currentItemId = Convert.ToInt32(rowView["Id"]);
+
+            // Load items with field values (repository includes References + RelatedItem).
+            var items = await _itemService.GetItemsForCollectionAsync(_currentCollection.Id);
+
+            var referencingItems = items
+                .Where(i =>
+                    i.FieldValues.Any(v =>
+                        // single reference
+                        (v.RelatedItemId.HasValue && v.RelatedItemId.Value == currentItemId)
+                        // list reference
+                        || v.References.Any(r => r.RelatedItemId == currentItemId)))
+                .ToList();
+
+            var window = new ReferencePreviewWindow(referencingItems)
+            {
+                Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive),
+                Title = "Referencing Item(s)"
+            };
+
+            window.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Could not load referencing items: {ex.Message}", StatusMessageType.Error);
         }
     }
 }

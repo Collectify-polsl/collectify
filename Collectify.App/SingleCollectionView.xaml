@@ -10,32 +10,32 @@
 
         <DataTemplate x:Key="ReferenceCellTemplate">
             <Grid VerticalAlignment="Center" HorizontalAlignment="Stretch">
-                <TextBlock x:Name="DashText" 
-                           Text="-" 
-                           Visibility="Collapsed" 
-                           VerticalAlignment="Center" 
+                <TextBlock x:Name="DashText"
+                           Text="-"
+                           Visibility="Collapsed"
+                           VerticalAlignment="Center"
                            HorizontalAlignment="Right"
                            Margin="0,0,10,0"
                            Foreground="{StaticResource DisabledForegroundBrush}"/>
 
-                <Button x:Name="RefBtn"
-                        Width="100" Height="30"
-                        HorizontalAlignment="Right"
-                        Margin="0,0,5,0"
+                <Button x:Name="ShowIncomingBtn"
+                        Width="130" Height="30"
+                        HorizontalAlignment="Left"
+                        Margin="5,0,0,0"
                         Style="{StaticResource SecondaryButtonStyle}"
-                        Command="{Binding DataContext.NavigateToReferencedItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                        Command="{Binding DataContext.ShowReferencingItemsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                         CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=DataGridCell}}">
-                    <TextBlock Text="Show Item" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <TextBlock Text="Show Item(s)" FontSize="11"/>
                 </Button>
             </Grid>
 
             <DataTemplate.Triggers>
                 <DataTrigger Binding="{Binding}" Value="-">
-                    <Setter TargetName="RefBtn" Property="Visibility" Value="Collapsed"/>
+                    <Setter TargetName="ShowIncomingBtn" Property="Visibility" Value="Collapsed"/>
                     <Setter TargetName="DashText" Property="Visibility" Value="Visible"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding}" Value="">
-                    <Setter TargetName="RefBtn" Property="Visibility" Value="Collapsed"/>
+                    <Setter TargetName="ShowIncomingBtn" Property="Visibility" Value="Collapsed"/>
                     <Setter TargetName="DashText" Property="Visibility" Value="Visible"/>
                 </DataTrigger>
             </DataTemplate.Triggers>
