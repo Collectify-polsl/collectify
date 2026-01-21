@@ -2,13 +2,11 @@
 using Collectify.Data;
 using Collectify.Data.Services;
 using Collectify.Model.Interfaces;
+using System.Linq;
 using System.Windows;
 
 namespace Collectify.App
 {
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
     public partial class App : Application
     {
         public App()
@@ -44,6 +42,30 @@ namespace Collectify.App
                 {
                     var vm = new RowWizardViewModel(collection, itemService, templateService, collectionService, item);
                     var view = new RowWizardView(vm);
+
+                    vm.RequestNavigateToItemId = itemId =>
+                    {
+                        var nextItem = itemService
+                            .GetItemAsync(itemId, includeFieldValues: true)
+                            .GetAwaiter()
+                            .GetResult();
+
+                        if (nextItem == null)
+                            return;
+
+                        var nextVm = new RowWizardViewModel(collection, itemService, templateService, collectionService, nextItem);
+                        var nextView = new RowWizardView(nextVm)
+                        {
+                            Owner = view.Owner ?? Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive),
+                            Title = "Edit Item"
+                        };
+
+                        nextVm.RequestNavigateToItemId = vm.RequestNavigateToItemId;
+                        nextVm.CloseAction = nextView.Close;
+
+                        nextView.ShowDialog();
+                    };
+
                     vm.CloseAction = view.Close;
                     return view;
                 }

@@ -29,6 +29,9 @@ public class RowWizardViewModel : INotifyPropertyChanged
 
     public Action? CloseAction { get; set; }
 
+    // NEW: lets the owner reopen RowWizard for a different item
+    public Action<int>? RequestNavigateToItemId { get; set; }
+
     public ObservableCollection<FieldInputViewModel> Fields { get; } = new();
 
     public Dictionary<string, List<Item>> ItemsByCollectionMap { get; } = new();
@@ -55,6 +58,10 @@ public class RowWizardViewModel : INotifyPropertyChanged
     public ICommand RemoveReferenceCommand { get; }
     public ICommand ShowReferencesCommand { get; }
 
+    // NEW
+    public ICommand NavigateNextCommand { get; }
+    public ICommand NavigatePreviousCommand { get; }
+
     public RowWizardViewModel(
         Collection collection,
         IItemService itemService,
@@ -74,7 +81,31 @@ public class RowWizardViewModel : INotifyPropertyChanged
         RemoveReferenceCommand = new RelayCommand<ReferenceSelectionViewModel>(RemoveReference);
         ShowReferencesCommand = new RelayCommand<FieldInputViewModel>(ShowReferences);
 
+        NavigateNextCommand = new RelayCommand(NavigateNext, CanNavigateNext);
+        NavigatePreviousCommand = new RelayCommand(NavigatePrevious, CanNavigatePrevious);
+
         InitializeAsync();
+    }
+
+    private bool CanNavigateNext() => _existingItem?.NextItemId is not null;
+    private bool CanNavigatePrevious() => _existingItem?.PreviousItemId is not null;
+
+    private void NavigateNext()
+    {
+        if (_existingItem?.NextItemId is null)
+            return;
+
+        RequestNavigateToItemId?.Invoke(_existingItem.NextItemId.Value);
+        CloseAction?.Invoke();
+    }
+
+    private void NavigatePrevious()
+    {
+        if (_existingItem?.PreviousItemId is null)
+            return;
+
+        RequestNavigateToItemId?.Invoke(_existingItem.PreviousItemId.Value);
+        CloseAction?.Invoke();
     }
 
     private bool CanSubmit() => Fields.All(IsFieldValueProvided);
@@ -141,11 +172,34 @@ public class RowWizardViewModel : INotifyPropertyChanged
 
                 Fields.Add(input);
             }
+
+            // NEW: refresh enabled-state after init (in case existing item links were lazy-loaded elsewhere)
+            (NavigateNextCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (NavigatePreviousCommand as RelayCommand)?.RaiseCanExecuteChanged();
+
+            InitializePrevNextSelectionsFromExistingItem();
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error initializing form: {ex.Message}";
             StatusType = StatusMessageType.Error;
+        }
+    }
+
+    private void InitializePrevNextSelectionsFromExistingItem()
+    {
+        if (_existingItem == null)
+            return;
+
+        foreach (var field in Fields.Where(f => f.IsReferenceList))
+        {
+            var selectedIds = field.SelectedReferences.Select(r => r.ItemId).ToHashSet();
+
+            if (_existingItem.PreviousItemId is int prev && selectedIds.Contains(prev))
+                field.SelectedPreviousItemId = prev;
+
+            if (_existingItem.NextItemId is int next && selectedIds.Contains(next))
+                field.SelectedNextItemId = next;
         }
     }
 
@@ -223,6 +277,8 @@ public class RowWizardViewModel : INotifyPropertyChanged
         if (ids == null || ids.Count == 0)
         {
             field.ClearSelectedReferences();
+            field.SelectedPreviousItemId = null;
+            field.SelectedNextItemId = null;
             return;
         }
 
@@ -233,6 +289,13 @@ public class RowWizardViewModel : INotifyPropertyChanged
             .ToList();
 
         field.ReplaceSelectedReferences(references);
+
+        // keep Previous/Next valid after changing selections
+        var set = field.SelectedReferences.Select(r => r.ItemId).ToHashSet();
+        if (field.SelectedPreviousItemId is int prev && !set.Contains(prev))
+            field.SelectedPreviousItemId = null;
+        if (field.SelectedNextItemId is int next && !set.Contains(next))
+            field.SelectedNextItemId = null;
     }
 
     private void UpdateSingleReference(FieldInputViewModel field, Item? item)
@@ -375,7 +438,16 @@ public class RowWizardViewModel : INotifyPropertyChanged
     private void RemoveReference(ReferenceSelectionViewModel? selection)
     {
         if (selection?.Owner == null) return;
-        selection.Owner.SelectedReferences.Remove(selection);
+
+        var owner = selection.Owner;
+        owner.SelectedReferences.Remove(selection);
+
+        // keep Previous/Next valid after removing a chip
+        var set = owner.SelectedReferences.Select(r => r.ItemId).ToHashSet();
+        if (owner.SelectedPreviousItemId is int prev && !set.Contains(prev))
+            owner.SelectedPreviousItemId = null;
+        if (owner.SelectedNextItemId is int next && !set.Contains(next))
+            owner.SelectedNextItemId = null;
     }
 
     private void ShowReferences(FieldInputViewModel? field)
@@ -496,6 +568,30 @@ public class FieldInputViewModel : INotifyPropertyChanged
         (IsReferenceSingle && Value is int) ||
         (IsReferenceList && HasSelectedReferences);
 
+    private int? _selectedPreviousItemId;
+    public int? SelectedPreviousItemId
+    {
+        get => _selectedPreviousItemId;
+        set
+        {
+            if (_selectedPreviousItemId == value) return;
+            _selectedPreviousItemId = value;
+            OnPropertyChanged();
+        }
+    }
+
+    private int? _selectedNextItemId;
+    public int? SelectedNextItemId
+    {
+        get => _selectedNextItemId;
+        set
+        {
+            if (_selectedNextItemId == value) return;
+            _selectedNextItemId = value;
+            OnPropertyChanged();
+        }
+    }
+
     public void ReplaceSelectedReferences(IEnumerable<ReferenceSelectionViewModel> references)
     {
         SelectedReferences.CollectionChanged -= SelectedReferencesChanged;
@@ -548,4 +644,4 @@ internal static class EnumerableExtensions
         if (item != null)
             yield return item;
     }
-}   
+}
