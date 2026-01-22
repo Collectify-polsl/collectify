@@ -83,6 +83,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
             _selectedRow = value;
             OnPropertyChanged();
             (EditItemCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (DeleteItemCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
         }
     }
 
@@ -129,6 +130,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     public ICommand ClearFilterCommand { get; }
     public ICommand EditCollectionCommand { get; }
     public ICommand EditItemCommand { get; }
+    public ICommand DeleteItemCommand { get; }
     public ICommand RefreshCommand { get; }
     public ICommand ShowReferencingItemsCommand { get; }
 
@@ -193,6 +195,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         ClearFilterCommand = new RelayCommand(ClearFilter);
         EditCollectionCommand = new AsyncRelayCommand(EditCollectionAsync);
         EditItemCommand = new RelayCommand(EditSelectedItem, () => SelectedRow != null);
+        DeleteItemCommand = new AsyncRelayCommand(DeleteSelectedItemAsync, () => SelectedRow != null);
         RefreshCommand = new AsyncRelayCommand(LoadDataAsync);
 
         ShowReferencingItemsCommand = new RelayCommand<object>(ShowReferencingItems);
@@ -203,21 +206,50 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
     private async void EditSelectedItem()
     {
-         if (SelectedRow == null) return;
-         int itemId = (int)SelectedRow["Id"];
-         
-         StatusMessage = string.Empty;
-         
-         var item = await _itemService.GetItemAsync(itemId, includeFieldValues: true);
-         
-         if (item != null)
-         {
-             var window = _rowWizardFactory(_currentCollection, item);
-             window.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
-             window.Title = "Edit Item"; 
-             
-             window.ShowDialog();
-         }
+        if (SelectedRow == null) return;
+        int itemId = (int)SelectedRow["Id"];
+
+        StatusMessage = string.Empty;
+
+        var item = await _itemService.GetItemAsync(itemId, includeFieldValues: true);
+
+        if (item != null)
+        {
+            var window = _rowWizardFactory(_currentCollection, item);
+            window.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
+            window.Title = "Edit Item";
+
+            window.ShowDialog();
+        }
+    }
+
+    private async Task DeleteSelectedItemAsync()
+    {
+        if (SelectedRow == null)
+            return;
+
+        int itemId = (int)SelectedRow["Id"];
+
+        var confirm = new ConfirmationWindow(
+            $"Are you sure you want to delete item #{itemId}?\nThis operation cannot be undone.",
+            "Confirm deletion")
+        {
+            Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive)
+        };
+
+        if (confirm.ShowDialog() != true)
+            return;
+
+        try
+        {
+            await _itemService.DeleteItemAsync(itemId);
+            ShowStatus("Item deleted successfully.", StatusMessageType.Success);
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error deleting item: {ex.Message}", StatusMessageType.Error);
+        }
     }
 
     public void HighlightItem(int itemId)

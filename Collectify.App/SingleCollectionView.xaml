@@ -107,6 +107,11 @@
                             Style="{StaticResource PrimaryButtonStyle}"
                             Margin="0,0,10,0"/>
 
+                    <Button Content="Delete Item"
+                            Command="{Binding DeleteItemCommand}"
+                            Style="{StaticResource DangerButtonStyle}"
+                            Margin="0,0,10,0"/>
+
                     <Button Content="Edit Info" 
                             Command="{Binding EditCollectionCommand}"
                             Style="{StaticResource SecondaryButtonStyle}"
