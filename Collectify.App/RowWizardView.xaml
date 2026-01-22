@@ -123,7 +123,7 @@
                                             </Grid.ColumnDefinitions>
 
                                             <StackPanel Grid.Column="0">
-                                                <TextBlock Text="Previous movie"
+                                                <TextBlock Text="Previous"
                                                            Foreground="{StaticResource SubTextBrush}"
                                                            Margin="0,0,0,3"/>
                                                 <ComboBox ItemsSource="{Binding SelectedReferences}"
@@ -134,7 +134,7 @@
                                             </StackPanel>
 
                                             <StackPanel Grid.Column="2">
-                                                <TextBlock Text="Next movie"
+                                                <TextBlock Text="Next"
                                                            Foreground="{StaticResource SubTextBrush}"
                                                            Margin="0,0,0,3"/>
                                                 <ComboBox ItemsSource="{Binding SelectedReferences}"

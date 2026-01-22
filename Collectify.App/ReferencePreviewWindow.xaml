@@ -6,78 +6,78 @@
         Height="460"
         Width="420"
         WindowStartupLocation="CenterOwner">
-    <Window.Resources>
-        <converters:FieldValueDisplayConverter x:Key="FieldValueDisplayConverter"/>
-        <converters:BytesToImageConverter x:Key="BytesToImageConverter"/>
-    </Window.Resources>
+	<Window.Resources>
+		<converters:FieldValueDisplayConverter x:Key="FieldValueDisplayConverter"/>
+		<converters:BytesToImageConverter x:Key="BytesToImageConverter"/>
+	</Window.Resources>
 
-    <Grid Margin="15">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+	<Grid Margin="15">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
 
-        <ScrollViewer Grid.Row="0"
+		<ScrollViewer Grid.Row="0"
                       VerticalScrollBarVisibility="Auto">
-            <ItemsControl x:Name="ItemsList">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Border BorderBrush="#E5E7EB"
+			<ItemsControl x:Name="ItemsList">
+				<ItemsControl.ItemTemplate>
+					<DataTemplate>
+						<Border BorderBrush="#E5E7EB"
                                 BorderThickness="0,0,0,1"
                                 Padding="8"
                                 Margin="0,0,0,5">
-                            <ItemsControl ItemsSource="{Binding FieldValues}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal"
+							<ItemsControl ItemsSource="{Binding FieldValues}">
+								<ItemsControl.ItemTemplate>
+									<DataTemplate>
+										<StackPanel Orientation="Horizontal"
                                                     Margin="0,2">
-                                            <TextBlock Text="{Binding FieldDefinition.Name, StringFormat='{}{0}: '}"
+											<TextBlock Text="{Binding FieldDefinition.Name, StringFormat='{}{0}: '}"
                                                        FontWeight="SemiBold"
                                                        Foreground="#374151"/>
-                                            <TextBlock Text="{Binding Converter={StaticResource FieldValueDisplayConverter}}"
+											<TextBlock Text="{Binding Converter={StaticResource FieldValueDisplayConverter}}"
                                                        Foreground="#4B5563">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding FieldDefinition.FieldType}" Value="Image">
-                                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
-                                            <Image Source="{Binding ImageValue, Converter={StaticResource BytesToImageConverter}}"
+												<TextBlock.Style>
+													<Style TargetType="TextBlock">
+														<Setter Property="Visibility" Value="Visible"/>
+														<Style.Triggers>
+															<DataTrigger Binding="{Binding FieldDefinition.FieldType}" Value="Image">
+																<Setter Property="Visibility" Value="Collapsed"/>
+															</DataTrigger>
+														</Style.Triggers>
+													</Style>
+												</TextBlock.Style>
+											</TextBlock>
+											<Image Source="{Binding ImageValue, Converter={StaticResource BytesToImageConverter}}"
                                                    Height="50"
                                                    Stretch="Uniform"
                                                    Margin="5,0,0,0">
-                                                <Image.Style>
-                                                    <Style TargetType="Image">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding FieldDefinition.FieldType}" Value="Image">
-                                                                <Setter Property="Visibility" Value="Visible"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Image.Style>
-                                            </Image>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
+												<Image.Style>
+													<Style TargetType="Image">
+														<Setter Property="Visibility" Value="Collapsed"/>
+														<Style.Triggers>
+															<DataTrigger Binding="{Binding FieldDefinition.FieldType}" Value="Image">
+																<Setter Property="Visibility" Value="Visible"/>
+															</DataTrigger>
+														</Style.Triggers>
+													</Style>
+												</Image.Style>
+											</Image>
+										</StackPanel>
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+						</Border>
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+			</ItemsControl>
+		</ScrollViewer>
 
-        <Button Grid.Row="1"
+		<Button Grid.Row="1"
                 Content="Close"
                 Width="100"
                 HorizontalAlignment="Right"
                 Margin="0,10,0,0"
                 IsCancel="True"
                 Style="{StaticResource SecondaryButtonStyle}"/>
-    </Grid>
+	</Grid>
 </Window>
