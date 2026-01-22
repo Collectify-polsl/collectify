@@ -135,16 +135,27 @@ public class RowWizardViewModel : INotifyPropertyChanged
             if (template == null) return;
 
             var collections = await _collectionService.GetCollectionsAsync();
+
             ItemsByCollectionMap.Clear();
             _itemsById.Clear();
 
+            // FIX: Build the lookup using items that definitely have FieldValues loaded.
+            // Without includeFieldValues:true, BuildItemLabel() can be empty after reload,
+            // which makes references look like they "didn't load".
             foreach (var col in collections)
             {
                 var items = (await _itemService.GetItemsForCollectionAsync(col.Id)).ToList();
+
                 ItemsByCollectionMap[col.Name] = items;
                 foreach (var item in items)
                     _itemsById[item.Id] = item;
             }
+
+            // Optional but robust: if we're editing an existing item, re-fetch it with includes
+            // so PopulateExistingValue sees references consistently.
+            Item? existingWithValues = _existingItem == null
+                ? null
+                : await _itemService.GetItemAsync(_existingItem.Id, includeFieldValues: true);
 
             Fields.Clear();
             foreach (var definition in template.Fields)
@@ -157,9 +168,10 @@ public class RowWizardViewModel : INotifyPropertyChanged
                     AllowsMultipleReferences = definition.IsList
                 };
 
-                if (_existingItem != null)
+                // FIX: use refreshed existing item (with FieldValues/References loaded)
+                if (existingWithValues != null)
                 {
-                    var existingValue = _existingItem.FieldValues.FirstOrDefault(v => v.FieldDefinitionId == definition.Id);
+                    var existingValue = existingWithValues.FieldValues.FirstOrDefault(v => v.FieldDefinitionId == definition.Id);
                     if (existingValue != null)
                         PopulateExistingValue(input, definition, existingValue);
                 }
@@ -173,11 +185,12 @@ public class RowWizardViewModel : INotifyPropertyChanged
                 Fields.Add(input);
             }
 
-            // NEW: refresh enabled-state after init (in case existing item links were lazy-loaded elsewhere)
             (NavigateNextCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (NavigatePreviousCommand as RelayCommand)?.RaiseCanExecuteChanged();
 
-            InitializePrevNextSelectionsFromExistingItem();
+            // FIX: base prev/next selection init on refreshed existing item too
+            if (existingWithValues != null)
+                InitializePrevNextSelectionsFromExistingItem();
         }
         catch (Exception ex)
         {
@@ -452,24 +465,42 @@ public class RowWizardViewModel : INotifyPropertyChanged
 
     private void ShowReferences(FieldInputViewModel? field)
     {
-        if (field == null || !field.IsReference) return;
+        if (field == null || !field.IsReference)
+            return;
 
-        var items = field.IsReferenceList
-            ? field.SelectedReferences.Select(r => GetItemById(r.ItemId)).WhereNotNull().ToList()
-            : field.Value is int id ? GetItemById(id).Yield().WhereNotNull().ToList() : new List<Item>();
-
-        if (items.Count == 0)
+        // Single reference (existing behavior)
+        if (!field.IsReferenceList)
         {
-            MessageBox.Show("No items to display.", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
+            if (field.Value is not int id)
+                return;
+
+            var found = GetItemById(id);
+            if (found == null)
+                return;
+
+            var preview = new ReferencePreviewWindow(new[] { found })
+            {
+                Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive)
+            };
+            preview.ShowDialog();
             return;
         }
 
-        var preview = new ReferencePreviewWindow(items)
+        // FIX: list reference must use SelectedReferences (UI state) or ids,
+        // not FieldValueDisplayConverter / RelatedItemId.
+        var items = field.SelectedReferences
+            .Select(r => GetItemById(r.ItemId))
+            .Where(i => i != null)
+            .ToList();
+
+        if (items.Count == 0)
+            return;
+
+        var listPreview = new ReferencePreviewWindow(items!)
         {
             Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive)
         };
-
-        preview.ShowDialog();
+        listPreview.ShowDialog();
     }
 
     private Item? GetItemById(int id) => _itemsById.TryGetValue(id, out var item) ? item : null;

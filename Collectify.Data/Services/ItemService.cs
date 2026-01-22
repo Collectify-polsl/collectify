@@ -106,6 +106,8 @@ public class ItemService : IItemService
 
     public async Task<Item?> GetItemAsync(int itemId, bool includeFieldValues = false, CancellationToken cancellationToken = default)
     {
+        // FIX: when the UI asks for field values, we must use the repository method
+        // that eagerly loads them (including references).
         if (includeFieldValues)
             return await _unitOfWork.Items.GetWithFieldValuesAsync(itemId, cancellationToken);
 

@@ -83,7 +83,8 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
             _selectedRow = value;
             OnPropertyChanged();
             (EditItemCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (DeleteItemCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+            (DeleteItemCommand as AsyncRelayCommand)?.
+            RaiseCanExecuteChanged();
         }
     }
 
@@ -391,13 +392,31 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
                     var valObj = item.FieldValues.FirstOrDefault(v => v.FieldDefinitionId == field.Id);
                     row[field.Name] = GetRawValue(valObj, field.FieldType) ?? DBNull.Value;
 
-                    if (field.FieldType == FieldType.ItemReference && valObj?.RelatedItemId.HasValue == true)
+                    // FIX: for reference fields that are lists, also fill the *_CollectionName column
+                    // so the UI doesn't appear "empty" after reload.
+                    if (field.FieldType == FieldType.ItemReference)
                     {
-                        var relatedItem = await _itemService.GetItemAsync(valObj.RelatedItemId.Value);
-                        if (relatedItem != null)
+                        int? refId = null;
+
+                        // single reference
+                        if (valObj?.RelatedItemId is int singleId)
+                            refId = singleId;
+                        // list reference (pick first for display purposes, consistent with GetRawValue)
+                        else if (valObj?.References != null && valObj.References.Count > 0)
+                            refId = valObj.References.First().RelatedItemId;
+
+                        if (refId.HasValue)
                         {
-                            var relatedCollection = await _collectionService.GetCollectionAsync(relatedItem.CollectionId);
-                            row[$"{field.Name}_CollectionName"] = relatedCollection?.Name ?? string.Empty;
+                            var relatedItem = await _itemService.GetItemAsync(refId.Value);
+                            if (relatedItem != null)
+                            {
+                                var relatedCollection = await _collectionService.GetCollectionAsync(relatedItem.CollectionId);
+                                row[$"{field.Name}_CollectionName"] = relatedCollection?.Name ?? string.Empty;
+                            }
+                            else
+                            {
+                                row[$"{field.Name}_CollectionName"] = string.Empty;
+                            }
                         }
                         else
                         {
@@ -410,7 +429,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
             }
 
             GridDataTable = table;
-            
+
             var list = new List<DataRowView>();
             foreach (DataRowView view in table.DefaultView) list.Add(view);
             DynamicTable = new ListCollectionView(list);
@@ -643,17 +662,29 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
             int currentItemId = Convert.ToInt32(rowView["Id"]);
 
-            // Load items with field values (repository includes References + RelatedItem).
-            var items = await _itemService.GetItemsForCollectionAsync(_currentCollection.Id);
+            // Search across ALL collections (references can be cross-collection).
+            var allCollections = await _collectionService.GetCollectionsAsync();
 
-            var referencingItems = items
-                .Where(i =>
-                    i.FieldValues.Any(v =>
-                        // single reference
-                        (v.RelatedItemId.HasValue && v.RelatedItemId.Value == currentItemId)
-                        // list reference
-                        || v.References.Any(r => r.RelatedItemId == currentItemId)))
-                .ToList();
+            var referencingItems = new List<Item>();
+
+            foreach (var col in allCollections)
+            {
+                var items = await _itemService.GetItemsForCollectionAsync(col.Id);
+
+                foreach (var item in items)
+                {
+                    // Ensure FieldValues is loaded (prevents NullReferenceException)
+                    var itemWithValues = await _itemService.GetItemAsync(item.Id, includeFieldValues: true);
+                    if (itemWithValues?.FieldValues == null) continue;
+
+                    bool referencesCurrent = itemWithValues.FieldValues.Any(v =>
+                        (v.RelatedItemId.HasValue && v.RelatedItemId.Value == currentItemId) ||
+                        (v.References?.Any(r => r.RelatedItemId == currentItemId) ?? false));
+
+                    if (referencesCurrent)
+                        referencingItems.Add(itemWithValues);
+                }
+            }
 
             var window = new ReferencePreviewWindow(referencingItems)
             {
