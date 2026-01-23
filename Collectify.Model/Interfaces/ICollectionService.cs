@@ -1,0 +1,36 @@
+﻿using CCollection = Collectify.Model.Collection.Collection;
+
+namespace Collectify.Model.Interfaces;
+
+/// <summary>
+/// Application service responsible for managing collections based on templates.
+/// </summary>
+public interface ICollectionService
+{
+    /// <summary>
+    /// Creates a new collection based on a given template.
+    /// </summary>
+    Task<CCollection> CreateCollectionAsync(int templateId, string name, string? description, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns all collections without their items.
+    /// </summary>
+    Task<IReadOnlyList<CCollection>> GetCollectionsAsync(int? templateId = null, string? search = null, bool sortDescending = false,
+        CancellationToken cancellationToken = default);
+
+
+    /// <summary>
+    /// Returns a single collection optionally including its items.
+    /// </summary>
+    Task<CCollection?> GetCollectionAsync(int collectionId, bool includeItems = false, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates basic collection data (name, description).
+    /// </summary>
+    Task UpdateCollectionAsync(int collectionId, string name, string? description, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a collection and its items.
+    /// </summary>
+    Task DeleteCollectionAsync(int collectionId, CancellationToken cancellationToken = default);
+}
