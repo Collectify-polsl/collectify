@@ -6,8 +6,10 @@ using System.Windows.Media.Imaging;
 
 namespace Collectify.App.Converters;
 
+// Transforms raw byte arrays into displayable BitmapImages for UI elements.
 public class BytesToImageConverter : IValueConverter
 {
+    // Decodes a byte array into a frozen BitmapImage to ensure thread-safe UI rendering.
     public object? Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         if (value is byte[] bytes && bytes.Length > 0)

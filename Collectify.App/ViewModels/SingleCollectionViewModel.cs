@@ -23,6 +23,7 @@ using System.Windows.Data;
 
 namespace Collectify.App.ViewModels;
 
+// Manages the detailed view of a specific collection, including its dynamic data grid, filtering, and item interactions.
 public class SingleCollectionViewModel : INotifyPropertyChanged
 {
     private readonly Collection _currentCollection;
@@ -151,6 +152,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
     private CancellationTokenSource? _statusCts;
 
+    // Displays a temporary status message in the UI that automatically clears after a set duration.
     private void ShowStatus(string message, StatusMessageType type, int durationMilliseconds = 5000)
     {
         _statusCts?.Cancel();
@@ -205,6 +207,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         LoadCollectionListAsync();
     }
 
+    // Opens the row wizard for the currently selected item to allow metadata updates.
     private async void EditSelectedItem()
     {
         if (SelectedRow == null) return;
@@ -224,6 +227,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         }
     }
 
+    // Permanently removes the selected item from the collection after user confirmation.
     private async Task DeleteSelectedItemAsync()
     {
         if (SelectedRow == null)
@@ -253,46 +257,50 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         }
     }
 
+    // Sets the selection in the dynamic table to a specific item ID and handles scroll-to-view logic.
     public void HighlightItem(int itemId)
     {
         _itemToHighlight = itemId;
         if (DynamicTable != null)
         {
-             foreach (DataRowView rowView in DynamicTable)
-             {
-                 if (Convert.ToInt32(rowView["Id"]) == itemId)
-                 {
-                     SelectedRow = rowView;
-                     break;
-                 }
-             }
-             if (SelectedRow != null) _itemToHighlight = null;
+            foreach (DataRowView rowView in DynamicTable)
+            {
+                if (Convert.ToInt32(rowView["Id"]) == itemId)
+                {
+                    SelectedRow = rowView;
+                    break;
+                }
+            }
+            if (SelectedRow != null) _itemToHighlight = null;
         }
     }
 
+    // Displays an editor for the current collection's general properties like name and description.
     private async Task EditCollectionAsync()
     {
         var window = new EditCollectionWindow(_currentCollection.Name, _currentCollection.Description);
         window.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
-        
+
         if (window.ShowDialog() == true)
         {
             try
             {
                 _currentCollection.Description = window.NewDescription;
-                                await _collectionService.UpdateCollectionAsync(
-                                    _currentCollection.Id, 
-                                    _currentCollection.Name, 
-                                    _currentCollection.Description);
-                
-                                ShowStatus("Collection description updated successfully!", StatusMessageType.Success);
-                            }
-                            catch (Exception ex)
-                            {             
-                                ShowStatus($"Error updating collection: {ex.Message}", StatusMessageType.Error);
-                            }
-                        }
-                    }
+                await _collectionService.UpdateCollectionAsync(
+                    _currentCollection.Id,
+                    _currentCollection.Name,
+                    _currentCollection.Description);
+
+                ShowStatus("Collection description updated successfully!", StatusMessageType.Success);
+            }
+            catch (Exception ex)
+            {
+                ShowStatus($"Error updating collection: {ex.Message}", StatusMessageType.Error);
+            }
+        }
+    }
+
+    // Opens a blank row wizard to create a new entry within the current collection.
     private void OpenNewElementCreator()
     {
         var window = _rowWizardFactory(_currentCollection, null);
@@ -303,6 +311,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         }
     }
 
+    // Identifies the target item from a cell click and opens its parent collection in a new window.
     private async void NavigateToReferencedItem(object? parameter)
     {
         if (parameter is not DataGridCell cell) return;
@@ -353,6 +362,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         }
     }
 
+    // Fetches all items and their metadata to build a dynamic DataTable for the grid display.
     private async Task LoadDataAsync()
     {
         try
@@ -462,6 +472,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         }
     }
 
+    // Loads all available collections to populate the navigation picker.
     private async Task LoadCollectionListAsync()
     {
         try
@@ -480,6 +491,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         }
     }
 
+    // Requests deletion of the entire collection and its items from the database.
     private async void DeleteCollection()
     {
         var window = new ConfirmationWindow(
@@ -496,16 +508,18 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-             ShowStatus($"Error deleting collection: {ex.Message}", StatusMessageType.Error);
+            ShowStatus($"Error deleting collection: {ex.Message}", StatusMessageType.Error);
         }
     }
 
+    // Determines the appropriate .NET type for a DataTable column based on the custom field type.
     private Type GetTypeForField(FieldType type)
     {
         if (type == FieldType.Image) return typeof(byte[]);
         return typeof(object);
     }
 
+    // Extracts the primitive data value from a FieldValue object for storage in a standard DataRow.
     private object? GetRawValue(FieldValue? value, FieldType type)
     {
         if (type == FieldType.Image) return value?.ImageValue;
@@ -533,6 +547,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         return result ?? "-";
     }
 
+    // Filters the DynamicTable using a regular expression matched against the selected column's values.
     private void ApplyFilter()
     {
         if (DynamicTable == null) return;
@@ -547,7 +562,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         try
         {
             Regex regex = new Regex(FilterText, RegexOptions.IgnoreCase);
-            
+
             StatusMessage = string.Empty;
 
             DynamicTable.Filter = (obj) =>
@@ -570,7 +585,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
                 }
                 return false;
             };
-            
+
             StatusMessage = string.Empty;
         }
         catch (ArgumentException)
@@ -583,6 +598,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         }
     }
 
+    // Resets the grid filter to show all items in the collection.
     private void ClearFilter()
     {
         SelectedFilterColumn = null;
@@ -592,7 +608,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         {
             DynamicTable.Filter = null;
         }
-        
+
         StatusMessage = string.Empty;
     }
 
@@ -600,6 +616,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     protected void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
+    // Opens a specialized modal window to view the full resolution of an image stored in a data row.
     private void OpenFullImage(object? parameter)
     {
         try
@@ -649,10 +666,11 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-             ShowStatus($"Could not open image preview: {ex.Message}", StatusMessageType.Error);
+            ShowStatus($"Could not open image preview: {ex.Message}", StatusMessageType.Error);
         }
     }
 
+    // Scans all collections to find and display every item that holds a reference to the selected item.
     private async void ShowReferencingItems(object? parameter)
     {
         try

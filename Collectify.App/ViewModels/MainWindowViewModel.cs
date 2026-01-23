@@ -12,7 +12,8 @@ using System.Windows.Input;
 
 namespace Collectify.App.ViewModels;
 
-public class MainWindowViewModel: INotifyPropertyChanged
+// Acts as the primary coordinator for the application, managing collection navigation and top-level window orchestration.
+public class MainWindowViewModel : INotifyPropertyChanged
 {
     private readonly ICollectionService _collectionService;
     private readonly IItemService _itemService;
@@ -67,6 +68,8 @@ public class MainWindowViewModel: INotifyPropertyChanged
         EditTemplateCommand = new RelayCommand(OpenEditTemplateWindow);
         LoadCollectionsAsync();
     }
+
+    // Opens a modal window to define a new collection and refreshes the list upon closing.
     private void OpenCreateCollectionWindow()
     {
         var window = _createCollectionWindowFactory();
@@ -76,6 +79,8 @@ public class MainWindowViewModel: INotifyPropertyChanged
 
         LoadCollectionsAsync();
     }
+
+    // Displays the interface for creating a new metadata template.
     private void OpenNewTemplateWindow()
     {
         var vm = new NewTemplateViewModel(_templateService);
@@ -84,6 +89,8 @@ public class MainWindowViewModel: INotifyPropertyChanged
         view.Owner = Application.Current.MainWindow;
         view.ShowDialog();
     }
+
+    // Launches the editor for modifying existing collection templates.
     private void OpenEditTemplateWindow()
     {
         var vm = new EditTemplateViewModel(_templateService);
@@ -93,6 +100,8 @@ public class MainWindowViewModel: INotifyPropertyChanged
         view.Owner = Application.Current.MainWindow;
         view.ShowDialog();
     }
+
+    // Switches the main view to display the items and details of a specific collection.
     private void OpenDetailsView(Collection collection)
     {
         if (collection == null) return;
@@ -119,12 +128,14 @@ public class MainWindowViewModel: INotifyPropertyChanged
         ActiveDetailsViewModel = detailsVM;
     }
 
+    // Retrieves all collections from the database to populate the sidebar or main dashboard.
     private async Task LoadCollectionsAsync()
     {
         Collections.Clear();
         var collections = await _collectionService.GetCollectionsAsync();
         foreach (var c in collections) Collections.Add(c);
     }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     protected void OnPropertyChanged([CallerMemberName] string? name = null)

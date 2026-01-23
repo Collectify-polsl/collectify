@@ -7,6 +7,7 @@ using System.Windows;
 
 namespace Collectify.App
 {
+    // Serves as the application entry point, handling global lifecycle events and dependency injection.
     public partial class App : Application
     {
         public App()
@@ -14,6 +15,7 @@ namespace Collectify.App
             InitializeComponent();
         }
 
+        // Bootstraps the application by initializing the database, core services, and the main window with its dependencies.
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
@@ -31,6 +33,7 @@ namespace Collectify.App
                 collectionService,
                 itemService,
                 templateService,
+                // Defines the factory logic for creating the new collection window and its associated view model.
                 createCollectionWindowFactory: () =>
                 {
                     var vm = new NewCollectionViewModel(collectionService, templateService);
@@ -38,6 +41,7 @@ namespace Collectify.App
                     vm.CloseAction = view.Close;
                     return view;
                 },
+                // Configures the row wizard factory, including recursive navigation logic for jumping between item editors.
                 rowWizardWindowFactory: (collection, item) =>
                 {
                     var vm = new RowWizardViewModel(collection, itemService, templateService, collectionService, item);

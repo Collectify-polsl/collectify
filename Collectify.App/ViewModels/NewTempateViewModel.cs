@@ -13,6 +13,7 @@ using System.Windows.Input;
 
 namespace Collectify.App.ViewModels;
 
+// Manages the logic for defining a new metadata template, including its name and a collection of custom fields.
 public class NewTemplateViewModel : INotifyPropertyChanged
 {
     private const string ReferenceFieldName = "itemReference";
@@ -130,11 +131,13 @@ public class NewTemplateViewModel : INotifyPropertyChanged
         };
     }
 
+    // Checks if the proposed column name is non-empty and unique within the current list.
     private bool CanAddColumn() =>
         !string.IsNullOrWhiteSpace(NewColumnName) &&
         !Columns.Any(c =>
             c.Name.Equals(NewColumnName, StringComparison.OrdinalIgnoreCase));
 
+    // Adds a new field definition to the template and resets the input fields for the next entry.
     private void AddColumn()
     {
         if (!CanAddColumn()) return;
@@ -153,16 +156,19 @@ public class NewTemplateViewModel : INotifyPropertyChanged
         AllowMultipleReferences = false;
     }
 
+    // Removes a previously added field from the template definition list.
     private void RemoveColumn(ColumnItem column)
     {
         if (Columns.Contains(column))
             Columns.Remove(column);
     }
 
+    // Validates that the template has a name and contains at least one field before saving.
     private bool CanSave() =>
         !string.IsNullOrWhiteSpace(TemplateName) &&
         Columns.Any();
 
+    // Sends the finalized template name and field definitions to the service for database persistence.
     private async Task SaveTemplateAsync()
     {
         try
@@ -187,6 +193,7 @@ public class NewTemplateViewModel : INotifyPropertyChanged
         }
     }
 
+    // Updates the internal column name state and notifies the UI while enforcing naming rules for specific types.
     private void SetNewColumnName(string? value)
     {
         var normalized = NormalizeColumnName(value);
@@ -197,6 +204,7 @@ public class NewTemplateViewModel : INotifyPropertyChanged
         (AddColumnCommand as RelayCommand)?.RaiseCanExecuteChanged();
     }
 
+    // Formats the column name based on whether it is a standard field or a reserved reference type.
     private string NormalizeColumnName(string? value) =>
         SelectedFieldType == FieldType.ItemReference
             ? ReferenceFieldName
@@ -206,4 +214,3 @@ public class NewTemplateViewModel : INotifyPropertyChanged
     protected void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
-

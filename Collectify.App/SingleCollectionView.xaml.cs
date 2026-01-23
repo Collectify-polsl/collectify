@@ -9,6 +9,7 @@ using Collectify.App.ViewModels;
 
 namespace Collectify.App;
 
+// Handles the code-behind for the collection view, specifically managing dynamic DataGrid column generation and visual tree interactions.
 public partial class SingleCollectionView : UserControl
 {
     public SingleCollectionView()
@@ -18,6 +19,7 @@ public partial class SingleCollectionView : UserControl
         ItemsGrid.PreviewMouseDown += ItemsGrid_PreviewMouseDown;
     }
 
+    // Deselects the current grid item if the user clicks on an empty area of the control.
     private void ItemsGrid_PreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         var dependencyObject = (DependencyObject)e.OriginalSource;
@@ -29,6 +31,7 @@ public partial class SingleCollectionView : UserControl
         }
     }
 
+    // Recursively searches up the visual tree to find a parent of a specific type.
     public static T? FindParent<T>(DependencyObject? child) where T : DependencyObject
     {
         if (child == null) return null;
@@ -38,6 +41,7 @@ public partial class SingleCollectionView : UserControl
         return FindParent<T>(parentObject);
     }
 
+    // Manages subscription to ViewModel property changes whenever the view's data context is updated.
     private void SingleCollectionView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         if (e.NewValue is SingleCollectionViewModel vm)
@@ -55,6 +59,7 @@ public partial class SingleCollectionView : UserControl
         }
     }
 
+    // Triggers a full column regeneration whenever the underlying DataTable in the ViewModel is swapped out.
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(SingleCollectionViewModel.GridDataTable))
@@ -67,6 +72,7 @@ public partial class SingleCollectionView : UserControl
         }
     }
 
+    // Dynamically builds DataGrid columns based on the DataTable schema, assigning templates for images and references.
     private void GenerateColumns(DataTable table)
     {
         ItemsGrid.Columns.Clear();
@@ -140,6 +146,7 @@ public partial class SingleCollectionView : UserControl
         }
     }
 
+    // Ensures that the selected row is always scrolled into the visible area of the grid.
     private void ItemsGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (sender is DataGrid grid && grid.SelectedItem != null)

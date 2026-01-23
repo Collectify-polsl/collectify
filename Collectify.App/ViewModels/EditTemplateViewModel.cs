@@ -15,6 +15,7 @@ using System.Windows.Input;
 
 namespace Collectify.App.ViewModels;
 
+// Manages the logic for modifying existing templates, including adding, removing, and updating field definitions.
 public class EditTemplateViewModel : INotifyPropertyChanged
 {
     private const string ReferenceFieldName = "itemReference";
@@ -145,12 +146,14 @@ public class EditTemplateViewModel : INotifyPropertyChanged
         LoadTemplatesAsync();
     }
 
+    // Updates the UI command states to reflect whether changes are eligible for saving.
     private void RefreshSaveState()
     {
         OnPropertyChanged(nameof(CanSubmit));
         (SaveTemplateCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
     }
 
+    // Handles synchronization of property change listeners when the collection of template columns is modified.
     private void OnColumnsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         if (e.NewItems != null)
@@ -168,6 +171,7 @@ public class EditTemplateViewModel : INotifyPropertyChanged
         RefreshSaveState();
     }
 
+    // Monitors individual column properties to trigger a UI state refresh when settings like "IsList" change.
     private void ColumnOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(ColumnItem.IsList) ||
@@ -177,6 +181,7 @@ public class EditTemplateViewModel : INotifyPropertyChanged
         }
     }
 
+    // Compares the current UI state against the original template data to detect unsaved modifications.
     private bool IsDirty()
     {
         if (SelectedTemplate == null) return false;
@@ -189,6 +194,7 @@ public class EditTemplateViewModel : INotifyPropertyChanged
         return nameChanged || columnsRemoved || columnsAdded || listChanged;
     }
 
+    // Validates that the template is in a valid state and contains unsaved changes before allowing a save.
     private bool CanSave()
     {
         return SelectedTemplate != null &&
@@ -197,6 +203,7 @@ public class EditTemplateViewModel : INotifyPropertyChanged
                IsDirty();
     }
 
+    // Populates the template selection list from the database and selects the first entry by default.
     private async void LoadTemplatesAsync()
     {
         var templates = await _templateService.GetAllTemplatesAsync();
@@ -208,6 +215,7 @@ public class EditTemplateViewModel : INotifyPropertyChanged
             SelectedTemplate = TemplateList.First();
     }
 
+    // Fetches detailed field information for the selected template and populates the editor columns.
     private async void LoadTemplateFields()
     {
         foreach (var column in Columns)
@@ -240,10 +248,12 @@ public class EditTemplateViewModel : INotifyPropertyChanged
         RefreshSaveState();
     }
 
+    // Verifies that a new column name is provided and doesn't already exist in the template.
     private bool CanAddColumn() =>
         !string.IsNullOrWhiteSpace(NewColumnName) &&
         !Columns.Any(c => c.Name.Equals(NewColumnName, StringComparison.OrdinalIgnoreCase));
 
+    // Creates a new column definition and adds it to the current template configuration.
     private void AddColumn()
     {
         if (!CanAddColumn()) return;
@@ -264,6 +274,7 @@ public class EditTemplateViewModel : INotifyPropertyChanged
         NewColumnAllowsMultiple = false;
     }
 
+    // Removes a column from the UI and tracks it for permanent deletion from the database upon saving.
     private void RemoveColumn(ColumnItem item)
     {
         if (!Columns.Contains(item)) return;
@@ -275,6 +286,7 @@ public class EditTemplateViewModel : INotifyPropertyChanged
         Columns.Remove(item);
     }
 
+    // Persists all pending template name changes, added fields, removed fields, and modified field settings to the database.
     private async Task SaveAsync()
     {
         if (!CanSave()) return;
@@ -317,8 +329,10 @@ public class EditTemplateViewModel : INotifyPropertyChanged
         }
     }
 
+    // Confirms if a template is selected and available for deletion.
     private bool CanDelete() => SelectedTemplate != null;
 
+    // Requests user confirmation and permanently removes the selected template and its associated fields.
     private async Task DeleteAsync()
     {
         if (SelectedTemplate == null) return;
@@ -343,6 +357,7 @@ public class EditTemplateViewModel : INotifyPropertyChanged
         }
     }
 
+    // Updates the staged column name while ensuring special field types maintain their reserved naming conventions.
     private void SetNewColumnName(string? value)
     {
         var normalized = NormalizeColumnName(value);
@@ -353,6 +368,7 @@ public class EditTemplateViewModel : INotifyPropertyChanged
         (AddColumnCommand as RelayCommand)?.RaiseCanExecuteChanged();
     }
 
+    // Standardizes column names by trimming whitespace or enforcing fixed names for reference types.
     private string NormalizeColumnName(string? value) =>
         SelectedFieldType == FieldType.ItemReference
             ? ReferenceFieldName

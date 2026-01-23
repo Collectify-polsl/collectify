@@ -7,8 +7,10 @@ using System.Windows.Data;
 
 namespace Collectify.App.Converters;
 
+// Formats dynamic field values into human-readable strings based on their specific data type.
 public class FieldValueDisplayConverter : IValueConverter
 {
+    // Evaluates the field type and converts the corresponding value property into a formatted text representation.
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         if (value is not FieldValue fv)
@@ -22,7 +24,6 @@ public class FieldValueDisplayConverter : IValueConverter
             FieldType.Date => fv.DateValue?.ToString("dd/MM/yyyy"),
 
             // FIX: when IsList, display the *ids* from the join table so it doesn't appear empty after reload.
-            // (If you later want names, you must load the related items and format them here.)
             FieldType.ItemReference => fv.FieldDefinition.IsList
                 ? (fv.References != null && fv.References.Count > 0
                     ? string.Join(", ", fv.References.Select(r => $"Item #{r.RelatedItemId}"))

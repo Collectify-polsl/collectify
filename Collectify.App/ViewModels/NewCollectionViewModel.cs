@@ -15,6 +15,7 @@ using System.Windows.Input;
 
 namespace Collectify.App.ViewModels;
 
+// Coordinates the creation of new collections by linking user-defined names to existing metadata templates.
 public class NewCollectionViewModel : INotifyPropertyChanged
 {
     private readonly ICollectionService _collectionService;
@@ -94,6 +95,7 @@ public class NewCollectionViewModel : INotifyPropertyChanged
         LoadTemplates();
     }
 
+    // Fetches the list of available templates to populate the selection dropdown.
     private async void LoadTemplates()
     {
         var templates = await _templateService.GetAllTemplatesAsync();
@@ -102,6 +104,7 @@ public class NewCollectionViewModel : INotifyPropertyChanged
             TemplateList.Add(t);
     }
 
+    // Retrieves and displays the specific fields associated with the chosen template to preview the collection structure.
     private async void LoadTemplateFields()
     {
         DisplayedColumns.Clear();
@@ -131,10 +134,12 @@ public class NewCollectionViewModel : INotifyPropertyChanged
         }
     }
 
+    // Ensures that both a name and a template are provided before allowing collection creation.
     private bool CanSave()
         => !string.IsNullOrWhiteSpace(CollectionName)
            && SelectedTemplate != null;
 
+    // Persists the new collection to the database and closes the creation dialog upon success.
     private async Task SaveAsync()
     {
         try
@@ -159,6 +164,7 @@ public class NewCollectionViewModel : INotifyPropertyChanged
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
+// Represents a single field definition within a template for display and editing in the UI.
 public class ColumnItem : INotifyPropertyChanged
 {
     private int? _id;
@@ -205,10 +211,12 @@ public class ColumnItem : INotifyPropertyChanged
         }
     }
 
+    // Indicates if the "IsList" property has been modified from its original database state.
     public bool HasListChange => Id.HasValue && IsList != InitialIsList;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    // Updates a field value and triggers a property change notification if the value has changed.
     protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {
         if (EqualityComparer<T>.Default.Equals(field, value))

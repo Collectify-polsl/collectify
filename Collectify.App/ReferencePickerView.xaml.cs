@@ -8,16 +8,17 @@ using System.Windows.Controls;
 
 namespace Collectify.App;
 
+// Provides a modal interface for searching and selecting item references across different collections.
 public partial class ReferencePickerWindow : Window
 {
     private readonly Dictionary<string, List<Item>> _map;
     private readonly bool _allowMultiple;
     private readonly HashSet<int> _preselectedIds;
 
-    // Właściwość, którą odczyta RowWizard po zamknięciu okna
     public int? SelectedItemId { get; private set; }
     public IReadOnlyList<int> SelectedItemIds { get; private set; } = Array.Empty<int>();
 
+    // Initializes the window with collection data and configures single or multiple selection modes.
     public ReferencePickerWindow(
         Dictionary<string, List<Item>> map,
         bool allowMultiple,
@@ -34,20 +35,18 @@ public partial class ReferencePickerWindow : Window
             ? "Tip: hold Ctrl or Shift to select multiple entries."
             : "Select a single item and click Accept.";
 
-        // Załaduj listę nazw kolekcji do ComboBoxa
         CollectionCombo.ItemsSource = _map.Keys.OrderBy(k => k).ToList();
 
-        // Opcjonalnie: wybierz pierwszą kolekcję na start
         if (_map.Count > 0)
             CollectionCombo.SelectedIndex = 0;
     }
 
+    // Filters and displays items belonging to the selected collection while maintaining previous selections.
     private void CollectionCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (CollectionCombo.SelectedItem is not string selectedCollection)
             return;
 
-        // Po zmianie kolekcji, wyświetl przedmioty do niej należące
         if (!_map.TryGetValue(selectedCollection, out var items))
             return;
 
@@ -69,6 +68,7 @@ public partial class ReferencePickerWindow : Window
         }
     }
 
+    // Validates the current selection and returns the chosen item IDs to the calling wizard.
     private void Select_Click(object sender, RoutedEventArgs e)
     {
         if (_allowMultiple)
@@ -86,7 +86,6 @@ public partial class ReferencePickerWindow : Window
             return;
         }
 
-        // Sprawdź czy użytkownik coś wybrał
         if (ItemsList.SelectedItem is Item selected)
         {
             SelectedItemId = selected.Id;

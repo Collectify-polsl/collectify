@@ -18,6 +18,7 @@ using System.Windows.Input;
 
 namespace Collectify.App.ViewModels;
 
+// Facilitates the multi-step process of creating or editing a collection item and its associated metadata fields.
 public class RowWizardViewModel : INotifyPropertyChanged
 {
     private readonly Collection _collection;
@@ -29,7 +30,6 @@ public class RowWizardViewModel : INotifyPropertyChanged
 
     public Action? CloseAction { get; set; }
 
-    // NEW: lets the owner reopen RowWizard for a different item
     public Action<int>? RequestNavigateToItemId { get; set; }
 
     public ObservableCollection<FieldInputViewModel> Fields { get; } = new();
@@ -58,7 +58,6 @@ public class RowWizardViewModel : INotifyPropertyChanged
     public ICommand RemoveReferenceCommand { get; }
     public ICommand ShowReferencesCommand { get; }
 
-    // NEW
     public ICommand NavigateNextCommand { get; }
     public ICommand NavigatePreviousCommand { get; }
 
@@ -90,6 +89,7 @@ public class RowWizardViewModel : INotifyPropertyChanged
     private bool CanNavigateNext() => _existingItem?.NextItemId is not null;
     private bool CanNavigatePrevious() => _existingItem?.PreviousItemId is not null;
 
+    // Triggers a navigation request to the next item in the sequence and closes the current wizard instance.
     private void NavigateNext()
     {
         if (_existingItem?.NextItemId is null)
@@ -99,6 +99,7 @@ public class RowWizardViewModel : INotifyPropertyChanged
         CloseAction?.Invoke();
     }
 
+    // Triggers a navigation request to the previous item in the sequence and closes the current wizard instance.
     private void NavigatePrevious()
     {
         if (_existingItem?.PreviousItemId is null)
@@ -110,6 +111,7 @@ public class RowWizardViewModel : INotifyPropertyChanged
 
     private bool CanSubmit() => Fields.All(IsFieldValueProvided);
 
+    // Determines if a field contains a valid entry based on its specific data type requirements.
     private bool IsFieldValueProvided(FieldInputViewModel field)
     {
         if (field.FieldType == FieldType.ItemReference)
@@ -127,6 +129,7 @@ public class RowWizardViewModel : INotifyPropertyChanged
         return true;
     }
 
+    // Preloads template definitions and existing item data to populate the wizard's input fields.
     private async void InitializeAsync()
     {
         try
@@ -139,9 +142,6 @@ public class RowWizardViewModel : INotifyPropertyChanged
             ItemsByCollectionMap.Clear();
             _itemsById.Clear();
 
-            // FIX: Build the lookup using items that definitely have FieldValues loaded.
-            // Without includeFieldValues:true, BuildItemLabel() can be empty after reload,
-            // which makes references look like they "didn't load".
             foreach (var col in collections)
             {
                 var items = (await _itemService.GetItemsForCollectionAsync(col.Id)).ToList();
@@ -151,8 +151,6 @@ public class RowWizardViewModel : INotifyPropertyChanged
                     _itemsById[item.Id] = item;
             }
 
-            // Optional but robust: if we're editing an existing item, re-fetch it with includes
-            // so PopulateExistingValue sees references consistently.
             Item? existingWithValues = _existingItem == null
                 ? null
                 : await _itemService.GetItemAsync(_existingItem.Id, includeFieldValues: true);
@@ -168,7 +166,6 @@ public class RowWizardViewModel : INotifyPropertyChanged
                     AllowsMultipleReferences = definition.IsList
                 };
 
-                // FIX: use refreshed existing item (with FieldValues/References loaded)
                 if (existingWithValues != null)
                 {
                     var existingValue = existingWithValues.FieldValues.FirstOrDefault(v => v.FieldDefinitionId == definition.Id);
@@ -188,7 +185,6 @@ public class RowWizardViewModel : INotifyPropertyChanged
             (NavigateNextCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (NavigatePreviousCommand as RelayCommand)?.RaiseCanExecuteChanged();
 
-            // FIX: base prev/next selection init on refreshed existing item too
             if (existingWithValues != null)
                 InitializePrevNextSelectionsFromExistingItem();
         }
@@ -199,6 +195,7 @@ public class RowWizardViewModel : INotifyPropertyChanged
         }
     }
 
+    // Synchronizes the previous and next item selection states based on the existing item's link properties.
     private void InitializePrevNextSelectionsFromExistingItem()
     {
         if (_existingItem == null)
@@ -216,6 +213,7 @@ public class RowWizardViewModel : INotifyPropertyChanged
         }
     }
 
+    // Maps a database-stored field value to the appropriate UI input property based on its type.
     private void PopulateExistingValue(FieldInputViewModel input, FieldDefinition definition, FieldValue value)
     {
         switch (definition.FieldType)
@@ -255,6 +253,7 @@ public class RowWizardViewModel : INotifyPropertyChanged
         }
     }
 
+    // Displays a dialog for selecting one or more items to be referenced by the current field.
     private void OpenReferencePicker(FieldInputViewModel? field)
     {
         if (field == null || !field.IsReference) return;
@@ -282,6 +281,7 @@ public class RowWizardViewModel : INotifyPropertyChanged
         }
     }
 
+    // Updates a multi-reference field with a new set of selected item references.
     private void ApplySelections(FieldInputViewModel field, IReadOnlyCollection<int> ids)
     {
         if (!field.IsReferenceList)
@@ -303,7 +303,6 @@ public class RowWizardViewModel : INotifyPropertyChanged
 
         field.ReplaceSelectedReferences(references);
 
-        // keep Previous/Next valid after changing selections
         var set = field.SelectedReferences.Select(r => r.ItemId).ToHashSet();
         if (field.SelectedPreviousItemId is int prev && !set.Contains(prev))
             field.SelectedPreviousItemId = null;
@@ -311,6 +310,7 @@ public class RowWizardViewModel : INotifyPropertyChanged
             field.SelectedNextItemId = null;
     }
 
+    // Updates a single-reference field with a specific item and updates its display label.
     private void UpdateSingleReference(FieldInputViewModel field, Item? item)
     {
         if (item == null)
@@ -325,6 +325,7 @@ public class RowWizardViewModel : INotifyPropertyChanged
         }
     }
 
+    // Opens a file dialog to select an image and stores its raw bytes in the field value.
     private void UploadImage(FieldInputViewModel? field)
     {
         if (field == null || !field.IsImage) return;
@@ -349,6 +350,7 @@ public class RowWizardViewModel : INotifyPropertyChanged
         }
     }
 
+    // Processes all field inputs and either creates a new item or updates an existing one in the database.
     private async Task SubmitRowAsync()
     {
         try
@@ -448,6 +450,7 @@ public class RowWizardViewModel : INotifyPropertyChanged
         }
     }
 
+    // Removes a specific item reference from a field's selection and updates the associated UI chips.
     private void RemoveReference(ReferenceSelectionViewModel? selection)
     {
         if (selection?.Owner == null) return;
@@ -455,7 +458,6 @@ public class RowWizardViewModel : INotifyPropertyChanged
         var owner = selection.Owner;
         owner.SelectedReferences.Remove(selection);
 
-        // keep Previous/Next valid after removing a chip
         var set = owner.SelectedReferences.Select(r => r.ItemId).ToHashSet();
         if (owner.SelectedPreviousItemId is int prev && !set.Contains(prev))
             owner.SelectedPreviousItemId = null;
@@ -463,12 +465,12 @@ public class RowWizardViewModel : INotifyPropertyChanged
             owner.SelectedNextItemId = null;
     }
 
+    // Opens a preview window to display detailed information about the currently selected item references.
     private void ShowReferences(FieldInputViewModel? field)
     {
         if (field == null || !field.IsReference)
             return;
 
-        // Single reference (existing behavior)
         if (!field.IsReferenceList)
         {
             if (field.Value is not int id)
@@ -486,8 +488,6 @@ public class RowWizardViewModel : INotifyPropertyChanged
             return;
         }
 
-        // FIX: list reference must use SelectedReferences (UI state) or ids,
-        // not FieldValueDisplayConverter / RelatedItemId.
         var items = field.SelectedReferences
             .Select(r => GetItemById(r.ItemId))
             .Where(i => i != null)
@@ -505,6 +505,7 @@ public class RowWizardViewModel : INotifyPropertyChanged
 
     private Item? GetItemById(int id) => _itemsById.TryGetValue(id, out var item) ? item : null;
 
+    // Generates a display-friendly label for an item by using its first available text field or its unique ID.
     private static string BuildItemLabel(Item item)
         => item.FieldValues.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v.TextValue))?.TextValue
            ?? $"Item #{item.Id}";
@@ -514,6 +515,7 @@ public class RowWizardViewModel : INotifyPropertyChanged
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }
 
+// Represents the data and UI state for a single field within the item wizard.
 public class FieldInputViewModel : INotifyPropertyChanged
 {
     private FieldType _fieldType;
@@ -623,6 +625,7 @@ public class FieldInputViewModel : INotifyPropertyChanged
         }
     }
 
+    // Completely updates the collection of selected item references with a new set of values.
     public void ReplaceSelectedReferences(IEnumerable<ReferenceSelectionViewModel> references)
     {
         SelectedReferences.CollectionChanged -= SelectedReferencesChanged;
@@ -651,6 +654,7 @@ public class FieldInputViewModel : INotifyPropertyChanged
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }
 
+// Acts as a lightweight data container for an item reference displayed as a selectable chip in the UI.
 public class ReferenceSelectionViewModel
 {
     public ReferenceSelectionViewModel(FieldInputViewModel owner, int itemId, string displayValue)

@@ -4,15 +4,16 @@ using System.Windows.Input;
 namespace Collectify.App.Commands;
 
 /// <summary>
-/// Generyczna wersja komendy, która przyjmuje parametr typu T.
-/// Używana np. przy usuwaniu konkretnego wiersza z listy: RelayCommand<ColumnItem>
+/// Generic version of the command that accepts a parameter of type T.
+/// Used for example when deleting a specific row from a list: RelayCommand<ColumnItem>
 /// </summary>
-/// <typeparam name="T">Typ danych przekazywanych z widoku (np. ColumnItem, string, int).</typeparam>
+/// <typeparam name="T">Data type passed from the view (e.g., ColumnItem, string, int).</typeparam>
 public class RelayCommand<T> : ICommand
 {
     private readonly Action<T> _execute;
     private readonly Predicate<T>? _canExecute;
 
+    // Initializes a new command instance with typed execution and validation logic.
     public RelayCommand(Action<T> execute, Predicate<T>? canExecute = null)
     {
         _execute = execute ?? throw new ArgumentNullException(nameof(execute));
@@ -25,24 +26,23 @@ public class RelayCommand<T> : ICommand
         remove => CommandManager.RequerySuggested -= value;
     }
 
+    // Checks if the parameter is compatible with type T and meets the execution criteria.
     public bool CanExecute(object? parameter)
     {
-        // 1. Jeśli parametr jest zgodny z typem T, sprawdzamy warunek
         if (parameter is T t)
         {
             return _canExecute == null || _canExecute(t);
         }
 
-        // 2. Jeśli parametr jest null, a typ T pozwala na nulle (jest klasą), też sprawdzamy
         if (parameter == null && default(T) == null)
         {
             return _canExecute == null || _canExecute(default!);
         }
 
-        // W przeciwnym razie blokujemy przycisk
         return false;
     }
 
+    // Runs the action by casting the input parameter to the expected generic type.
     public void Execute(object? parameter)
     {
         if (parameter is T t)
