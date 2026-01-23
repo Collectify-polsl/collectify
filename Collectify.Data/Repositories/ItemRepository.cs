@@ -14,6 +14,8 @@ public class ItemRepository : EfRepository<Item>, IItemRepository
         return await _dbSet
             .Where(i => i.CollectionId == collectionId)
             .Include(i => i.FieldValues)
+                .ThenInclude(v => v.FieldDefinition)      // <-- needed for display/converters
+            .Include(i => i.FieldValues)
                 .ThenInclude(v => v.References)
                     .ThenInclude(r => r.RelatedItem)
             .Include(i => i.FieldValues)
@@ -26,6 +28,8 @@ public class ItemRepository : EfRepository<Item>, IItemRepository
         return await _dbSet
             .Where(i => i.Id == itemId)
             .Include(i => i.FieldValues)
+                .ThenInclude(v => v.FieldDefinition)      // <-- needed for display/converters
+            .Include(i => i.FieldValues)
                 .ThenInclude(v => v.References)
                     .ThenInclude(r => r.RelatedItem)
             .Include(i => i.FieldValues)
@@ -37,6 +41,13 @@ public class ItemRepository : EfRepository<Item>, IItemRepository
     {
         return await _dbSet
             .Where(i => i.CollectionId == collectionId)
+            .Include(i => i.FieldValues)
+                .ThenInclude(v => v.FieldDefinition)      // keep FieldDefinition for previews
+            .Include(i => i.FieldValues)
+                .ThenInclude(v => v.References)
+                    .ThenInclude(r => r.RelatedItem)
+            .Include(i => i.FieldValues)
+                .ThenInclude(v => v.RelatedItem)
             .ToListAsync(cancellationToken);
     }
 }
