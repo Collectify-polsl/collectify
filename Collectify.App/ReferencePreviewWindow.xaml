@@ -80,8 +80,8 @@
                                 <Button Grid.Column="1"
                                         VerticalAlignment="Center"
                                         Margin="12,0,0,0"
-                                        Content="Remove this reference"
-                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        Content="Remove"
+                                        Style="{StaticResource DangerButtonStyle}"
                                         Click="Remove_Click"
                                         CommandParameter="{Binding}"
                                         Visibility="{Binding AllowRemove, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}"/>
