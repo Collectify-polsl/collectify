@@ -61,6 +61,9 @@ public class RowWizardViewModel : INotifyPropertyChanged
     public ICommand NavigateNextCommand { get; }
     public ICommand NavigatePreviousCommand { get; }
 
+    public ICommand ClearPreviousSelectionCommand { get; }
+    public ICommand ClearNextSelectionCommand { get; }
+
     public RowWizardViewModel(
         Collection collection,
         IItemService itemService,
@@ -82,6 +85,9 @@ public class RowWizardViewModel : INotifyPropertyChanged
 
         NavigateNextCommand = new RelayCommand(NavigateNext, CanNavigateNext);
         NavigatePreviousCommand = new RelayCommand(NavigatePrevious, CanNavigatePrevious);
+
+        ClearPreviousSelectionCommand = new RelayCommand<FieldInputViewModel>(ClearPreviousSelection);
+        ClearNextSelectionCommand = new RelayCommand<FieldInputViewModel>(ClearNextSelection);
 
         InitializeAsync();
     }
@@ -425,19 +431,35 @@ public class RowWizardViewModel : INotifyPropertyChanged
                 inputs.Add(input);
             }
 
+            // choose the first list-reference field as the navigation source
+            var navField = Fields.FirstOrDefault(f => f.IsReferenceList);
+
+            int? previousItemId = null;
+            int? nextItemId = null;
+
+            if (navField != null)
+            {
+                if (navField.SelectedPreviousItemId is int prev && IsSameCollection(prev))
+                    previousItemId = prev;
+
+                if (navField.SelectedNextItemId is int next && IsSameCollection(next))
+                    nextItemId = next;
+            }
+
+            // replace the existing create/update calls
             if (_existingItem != null)
             {
                 await _itemService.UpdateItemAsync(
                     _existingItem.Id,
                     inputs,
-                    _existingItem.PreviousItemId,
-                    _existingItem.NextItemId);
+                    previousItemId ?? _existingItem.PreviousItemId,
+                    nextItemId ?? _existingItem.NextItemId);
 
                 DialogResult = true;
             }
             else
             {
-                await _itemService.CreateItemAsync(_collection.Id, inputs, null, null);
+                await _itemService.CreateItemAsync(_collection.Id, inputs, previousItemId, nextItemId);
                 DialogResult = true;
             }
 
@@ -518,6 +540,8 @@ public class RowWizardViewModel : INotifyPropertyChanged
     }
 
     private Item? GetItemById(int id) => _itemsById.TryGetValue(id, out var item) ? item : null;
+    private bool IsSameCollection(int itemId) =>
+        _itemsById.TryGetValue(itemId, out var item) && item.CollectionId == _collection.Id;
 
     // Generates a display-friendly label for an item by using its first available text field or its unique ID.
     private static string BuildItemLabel(Item item)
@@ -661,6 +685,20 @@ public class FieldInputViewModel : INotifyPropertyChanged
     {
         OnPropertyChanged(nameof(HasSelectedReferences));
         OnPropertyChanged(nameof(CanShowReferences));
+    }
+
+    // Clears the previous item selection marker from the specified reference field.
+    private void ClearPreviousSelection(FieldInputViewModel? field)
+    {
+        if (field == null) return;
+        field.SelectedPreviousItemId = null;
+    }
+
+    // Clears the next item selection marker from the specified reference field.
+    private void ClearNextSelection(FieldInputViewModel? field)
+    {
+        if (field == null) return;
+        field.SelectedNextItemId = null;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

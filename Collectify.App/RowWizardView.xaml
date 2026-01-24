@@ -126,22 +126,52 @@
                                                 <TextBlock Text="Previous"
                                                            Foreground="{StaticResource SubTextBrush}"
                                                            Margin="0,0,0,3"/>
-                                                <ComboBox ItemsSource="{Binding SelectedReferences}"
-                                                          DisplayMemberPath="DisplayValue"
-                                                          SelectedValuePath="ItemId"
-                                                          SelectedValue="{Binding SelectedPreviousItemId, Mode=TwoWay}"
-                                                          Padding="6"/>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <ComboBox Grid.Column="0"
+                                                              ItemsSource="{Binding SelectedReferences}"
+                                                              DisplayMemberPath="DisplayValue"
+                                                              SelectedValuePath="ItemId"
+                                                              SelectedValue="{Binding SelectedPreviousItemId, Mode=TwoWay}"
+                                                              Padding="6"/>
+                                                    <Button Grid.Column="1"
+                                                            Content="×"
+                                                            Width="26"
+                                                            Height="26"
+                                                            Margin="6,0,0,0"
+                                                            Style="{StaticResource BaseButtonStyle}"
+                                                            Command="{Binding DataContext.ClearPreviousSelectionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding}"/>
+                                                </Grid>
                                             </StackPanel>
 
                                             <StackPanel Grid.Column="2">
                                                 <TextBlock Text="Next"
                                                            Foreground="{StaticResource SubTextBrush}"
                                                            Margin="0,0,0,3"/>
-                                                <ComboBox ItemsSource="{Binding SelectedReferences}"
-                                                          DisplayMemberPath="DisplayValue"
-                                                          SelectedValuePath="ItemId"
-                                                          SelectedValue="{Binding SelectedNextItemId, Mode=TwoWay}"
-                                                          Padding="6"/>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <ComboBox Grid.Column="0"
+                                                              ItemsSource="{Binding SelectedReferences}"
+                                                              DisplayMemberPath="DisplayValue"
+                                                              SelectedValuePath="ItemId"
+                                                              SelectedValue="{Binding SelectedNextItemId, Mode=TwoWay}"
+                                                              Padding="6"/>
+                                                    <Button Grid.Column="1"
+                                                            Content="×"
+                                                            Width="26"
+                                                            Height="26"
+                                                            Margin="6,0,0,0"
+                                                            Style="{StaticResource BaseButtonStyle}"
+                                                            Command="{Binding DataContext.ClearNextSelectionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding}"/>
+                                                </Grid>
                                             </StackPanel>
                                         </Grid>
                                     </StackPanel>
