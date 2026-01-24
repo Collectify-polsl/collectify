@@ -32,7 +32,7 @@ public partial class ReferencePickerWindow : Window
 
         ItemsList.SelectionMode = _allowMultiple ? SelectionMode.Extended : SelectionMode.Single;
         SelectionHint.Text = _allowMultiple
-            ? "Tip: hold Ctrl or Shift to select multiple entries."
+            ? "Hold Ctrl or Shift to select multiple entries."
             : "Select a single item and click Accept.";
 
         CollectionCombo.ItemsSource = _map.Keys.OrderBy(k => k).ToList();
