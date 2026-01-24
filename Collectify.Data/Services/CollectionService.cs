@@ -35,29 +35,10 @@ public class CollectionService : ICollectionService
         return collection;
     }
 
-    public async Task<IReadOnlyList<CCollection>> GetCollectionsAsync(int? templateId = null, string? search = null, bool sortDescending = false,
-        CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<CCollection>> GetCollectionsAsync(CancellationToken cancellationToken = default)
     {
         IReadOnlyList<CCollection> collections = await _unitOfWork.Collections.GetAllAsync(cancellationToken);
-
-        IEnumerable<CCollection> query = collections;
-
-        if (templateId is not null)
-            query = query.Where(c => c.TemplateId == templateId.Value);
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            string term = search.Trim();
-
-            query = query.Where(c =>
-                (!string.IsNullOrEmpty(c.Name) && c.Name.Contains(term, StringComparison.OrdinalIgnoreCase))
-                ||
-                (!string.IsNullOrEmpty(c.Description) && c.Description.Contains(term, StringComparison.OrdinalIgnoreCase)));
-        }
-
-        query = sortDescending ? query.OrderByDescending(c => c.Name) : query.OrderBy(c => c.Name);
-
-        return query.ToList();
+        return collections.OrderBy(c => c.Name).ToList();
     }
 
     public async Task<CCollection?> GetCollectionAsync(int collectionId, bool includeItems = false, CancellationToken cancellationToken = default)

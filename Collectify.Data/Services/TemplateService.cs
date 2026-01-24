@@ -26,7 +26,7 @@ public class TemplateService : ITemplateService
             {
                 Name = field.Name,
                 FieldType = field.FieldType,
-                IsList = field.IsList,
+                IsList = field.FieldType == FieldType.ItemReference && field.IsList,
                 Template = template
             };
             template.Fields.Add(definition);
@@ -59,7 +59,7 @@ public class TemplateService : ITemplateService
         {
             Name = name,
             FieldType = fieldType,
-            IsList = isList,
+            IsList = fieldType == FieldType.ItemReference && isList,
             TemplateId = templateId
         };
 
@@ -73,6 +73,13 @@ public class TemplateService : ITemplateService
     {
         FieldDefinition? field = await _unitOfWork.FieldDefinitions.GetByIdAsync(fieldDefinitionId, cancellationToken)
             ?? throw new InvalidOperationException($"Field definition with id {fieldDefinitionId} was not found.");
+
+        if (field.FieldType != FieldType.ItemReference && isList)
+        {
+             // If trying to set IsList=true on a non-reference type, we just ignore it or set to false.
+             // Given the user instruction "remove everything... lists", ensuring it stays false is safer.
+             isList = false;
+        }
 
         field.IsList = isList;
 
@@ -95,20 +102,10 @@ public class TemplateService : ITemplateService
             ? await _unitOfWork.Templates.GetWithFieldsAsync(templateId, cancellationToken)
             : await _unitOfWork.Templates.GetByIdAsync(templateId, cancellationToken);
 
-    public async Task<IReadOnlyList<Template>> GetAllTemplatesAsync(string? search = null, bool sortDescending = false,
-        CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Template>> GetAllTemplatesAsync(CancellationToken cancellationToken = default)
     {
         IReadOnlyList<Template> templates = await _unitOfWork.Templates.GetAllAsync(cancellationToken);
-        IEnumerable<Template> query = templates;
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            string term = search.Trim();
-            query = query.Where(t => !string.IsNullOrEmpty(t.Name) && t.Name.Contains(term, StringComparison.OrdinalIgnoreCase));
-        }
-
-        query = sortDescending ? query.OrderByDescending(t => t.Name) : query.OrderBy(t => t.Name);
-        return query.ToList();
+        return templates.OrderBy(t => t.Name).ToList();
     }
 
     public async Task DeleteTemplateAsync(int templateId, CancellationToken cancellationToken = default)
@@ -124,20 +121,4 @@ public class TemplateService : ITemplateService
         _unitOfWork.Templates.Remove(template);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
-
-    public async Task<Template?> GetTemplateByNameAsync(string name, CancellationToken cancellationToken = default)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-            return null;
-
-        string normalized = name.Trim().ToLowerInvariant();
-        IReadOnlyList<Template> matches = await _unitOfWork.Templates.FindAsync(
-            t => t.Name != null && t.Name.ToLower() == normalized,
-            cancellationToken);
-
-        return matches.FirstOrDefault();
-    }
-
-    public Task<IReadOnlyList<FieldDefinition>> GetFieldDefinitionsAsync(int templateId, CancellationToken cancellationToken = default)
-        => _unitOfWork.FieldDefinitions.FindAsync(fd => fd.TemplateId == templateId, cancellationToken);
 }
