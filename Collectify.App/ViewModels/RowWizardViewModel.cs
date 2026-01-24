@@ -496,11 +496,25 @@ public class RowWizardViewModel : INotifyPropertyChanged
         if (items.Count == 0)
             return;
 
-        var listPreview = new ReferencePreviewWindow(items!)
+        var listPreview = new ReferencePreviewWindow(items!, allowRemove: true)
         {
             Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive)
         };
         listPreview.ShowDialog();
+
+        var removed = listPreview.RemovedItemIds;
+        if (removed != null && removed.Count > 0)
+        {
+            var toRemove = field.SelectedReferences.Where(r => removed.Contains(r.ItemId)).ToList();
+            foreach (var r in toRemove)
+                field.SelectedReferences.Remove(r);
+
+            var set = field.SelectedReferences.Select(r => r.ItemId).ToHashSet();
+            if (field.SelectedPreviousItemId is int prev && !set.Contains(prev))
+                field.SelectedPreviousItemId = null;
+            if (field.SelectedNextItemId is int next && !set.Contains(next))
+                field.SelectedNextItemId = null;
+        }
     }
 
     private Item? GetItemById(int id) => _itemsById.TryGetValue(id, out var item) ? item : null;

@@ -147,70 +147,12 @@
                                     </StackPanel>
 
                                     <!-- Selected reference chips (ONLY for list refs) -->
-                                    <ItemsControl ItemsSource="{Binding SelectedReferences}">
-                                        <ItemsControl.Style>
-                                            <Style TargetType="ItemsControl">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                <Style.Triggers>
-                                                    <MultiDataTrigger>
-                                                        <MultiDataTrigger.Conditions>
-                                                            <Condition Binding="{Binding IsReferenceList}" Value="True"/>
-                                                            <Condition Binding="{Binding HasSelectedReferences}" Value="True"/>
-                                                        </MultiDataTrigger.Conditions>
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </MultiDataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </ItemsControl.Style>
-
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <WrapPanel Margin="0,5,0,0"/>
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border Background="#E5E7EB"
-                                                        CornerRadius="4"
-                                                        Padding="6"
-                                                        Margin="0,5,5,0">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="{Binding DisplayValue}"
-                                                                   Foreground="{StaticResource TextBrush}"
-                                                                   Margin="0,0,8,0"/>
-                                                        <Button Content="×"
-                                                                Width="20"
-                                                                Height="20"
-                                                                Padding="0"
-                                                                Style="{StaticResource BaseButtonStyle}"
-                                                                Command="{Binding DataContext.RemoveReferenceCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                CommandParameter="{Binding}"/>
-                                                    </StackPanel>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-
+                                    <ItemsControl ItemsSource="{Binding SelectedReferences}" Visibility="Collapsed"/>
                                     <TextBlock Text="No items selected yet."
                                                Foreground="{StaticResource SubTextBrush}"
                                                FontStyle="Italic"
-                                               Margin="0,5,0,0">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                <Style.Triggers>
-                                                    <MultiDataTrigger>
-                                                        <MultiDataTrigger.Conditions>
-                                                            <Condition Binding="{Binding IsReferenceList}" Value="True"/>
-                                                            <Condition Binding="{Binding HasSelectedReferences}" Value="False"/>
-                                                        </MultiDataTrigger.Conditions>
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </MultiDataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
+                                               Margin="0,5,0,0"
+                                               Visibility="Collapsed"/>
 
                                 </StackPanel>
 
