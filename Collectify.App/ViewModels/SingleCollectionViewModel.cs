@@ -381,10 +381,12 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
             foreach (var field in sortedFields)
             {
-                table.Columns.Add(field.Name, GetTypeForField(field.FieldType));
+                var dataCol = table.Columns.Add(field.Name, GetTypeForField(field.FieldType));
 
                 if (field.FieldType == FieldType.ItemReference)
                 {
+                    // mark so the view can render the reference template even when values are empty/"-"
+                    dataCol.ExtendedProperties["IsReference"] = true;
                     table.Columns.Add($"{field.Name}_CollectionName", typeof(string));
                 }
             }

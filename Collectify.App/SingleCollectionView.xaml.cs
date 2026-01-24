@@ -82,9 +82,7 @@ public partial class SingleCollectionView : UserControl
             string propertyName = column.ColumnName;
 
             if (propertyName == "Id" || propertyName.EndsWith("_CollectionName"))
-            {
                 continue;
-            }
 
             DataGridColumn gridColumn;
             var columnType = column.DataType;
@@ -100,16 +98,7 @@ public partial class SingleCollectionView : UserControl
             }
             else
             {
-                bool isReference = false;
-                foreach (DataRow row in table.Rows)
-                {
-                    var value = row[propertyName];
-                    if (value?.GetType().Name == "ReferenceValue")
-                    {
-                        isReference = true;
-                        break;
-                    }
-                }
+                var isReference = column.ExtendedProperties.ContainsKey("IsReference");
 
                 if (isReference)
                 {
@@ -141,9 +130,7 @@ public partial class SingleCollectionView : UserControl
         }
 
         if (ItemsGrid.Columns.Count > 0)
-        {
-            ItemsGrid.Columns[ItemsGrid.Columns.Count - 1].Width = new DataGridLength(1, DataGridLengthUnitType.Star);
-        }
+            ItemsGrid.Columns[^1].Width = new DataGridLength(1, DataGridLengthUnitType.Star);
     }
 
     // Ensures that the selected row is always scrolled into the visible area of the grid.
