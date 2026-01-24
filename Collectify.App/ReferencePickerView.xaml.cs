@@ -13,7 +13,7 @@ public partial class ReferencePickerWindow : Window
 {
     private readonly Dictionary<string, List<Item>> _map;
     private readonly bool _allowMultiple;
-    private readonly HashSet<int> _preselectedIds;
+    private readonly HashSet<int> _selectedIds; // accumulates picks across collections
 
     public int? SelectedItemId { get; private set; }
     public IReadOnlyList<int> SelectedItemIds { get; private set; } = Array.Empty<int>();
@@ -28,7 +28,7 @@ public partial class ReferencePickerWindow : Window
 
         _map = map;
         _allowMultiple = allowMultiple;
-        _preselectedIds = preselectedIds is null ? new HashSet<int>() : new HashSet<int>(preselectedIds);
+        _selectedIds = preselectedIds is null ? new HashSet<int>() : new HashSet<int>(preselectedIds);
 
         ItemsList.SelectionMode = _allowMultiple ? SelectionMode.Extended : SelectionMode.Single;
         SelectionHint.Text = _allowMultiple
@@ -44,6 +44,13 @@ public partial class ReferencePickerWindow : Window
     // Filters and displays items belonging to the selected collection while maintaining previous selections.
     private void CollectionCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        // Persist selections from the previously shown collection
+        if (_allowMultiple)
+        {
+            foreach (var picked in ItemsList.SelectedItems.Cast<Item>())
+                _selectedIds.Add(picked.Id);
+        }
+
         if (CollectionCombo.SelectedItem is not string selectedCollection)
             return;
 
@@ -52,19 +59,20 @@ public partial class ReferencePickerWindow : Window
 
         ItemsList.ItemsSource = items;
 
-        if (!_preselectedIds.Any())
-            return;
-
-        if (_allowMultiple)
+        // Re-apply any previously chosen IDs that belong to this collection
+        if (_selectedIds.Any())
         {
-            foreach (var item in items.Where(i => _preselectedIds.Contains(i.Id)))
-                ItemsList.SelectedItems.Add(item);
-        }
-        else
-        {
-            var first = items.FirstOrDefault(i => _preselectedIds.Contains(i.Id));
-            if (first != null)
-                ItemsList.SelectedItem = first;
+            if (_allowMultiple)
+            {
+                foreach (var item in items.Where(i => _selectedIds.Contains(i.Id)))
+                    ItemsList.SelectedItems.Add(item);
+            }
+            else
+            {
+                var first = items.FirstOrDefault(i => _selectedIds.Contains(i.Id));
+                if (first != null)
+                    ItemsList.SelectedItem = first;
+            }
         }
     }
 
@@ -73,7 +81,11 @@ public partial class ReferencePickerWindow : Window
     {
         if (_allowMultiple)
         {
-            var ids = ItemsList.SelectedItems.Cast<Item>().Select(i => i.Id).Distinct().ToList();
+            // Merge current view selection into the accumulated set
+            foreach (var picked in ItemsList.SelectedItems.Cast<Item>())
+                _selectedIds.Add(picked.Id);
+
+            var ids = _selectedIds.ToList();
             if (ids.Count == 0)
             {
                 MessageBox.Show("Please select at least one item.", "No selection", MessageBoxButton.OK, MessageBoxImage.Information);
