@@ -8,6 +8,32 @@
     <UserControl.Resources>
         <converters:BytesToImageConverter x:Key="BytesToImageConverter"/>
 
+        <Style x:Key="LinkButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#2563EB"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="#1D4ED8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <DataTemplate x:Key="ReferenceCellTemplate">
             <Grid VerticalAlignment="Center" HorizontalAlignment="Stretch">
                 <TextBlock x:Name="DashText" 
@@ -36,6 +62,44 @@
                 </DataTrigger>
                 <DataTrigger Binding="{Binding}" Value="">
                     <Setter TargetName="RefBtn" Property="Visibility" Value="Collapsed"/>
+                    <Setter TargetName="DashText" Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <DataTemplate x:Key="PreviousItemCellTemplate">
+            <Grid>
+                <TextBlock x:Name="DashText" Text="-" Visibility="Collapsed" VerticalAlignment="Center" Margin="5,0" Foreground="{StaticResource DisabledForegroundBrush}"/>
+                <Button x:Name="LinkBtn"
+                        Command="{Binding DataContext.NavigateToReferencedItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                        CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=DataGridCell}}"
+                        Content="{Binding Previous.Display}"
+                        Style="{StaticResource LinkButtonStyle}"
+                        HorizontalAlignment="Left"
+                        Margin="5,0"/>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Previous}" Value="-">
+                    <Setter TargetName="LinkBtn" Property="Visibility" Value="Collapsed"/>
+                    <Setter TargetName="DashText" Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <DataTemplate x:Key="NextItemCellTemplate">
+            <Grid>
+                <TextBlock x:Name="DashText" Text="-" Visibility="Collapsed" VerticalAlignment="Center" Margin="5,0" Foreground="{StaticResource DisabledForegroundBrush}"/>
+                <Button x:Name="LinkBtn"
+                        Command="{Binding DataContext.NavigateToReferencedItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                        CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=DataGridCell}}"
+                        Content="{Binding Next.Display}"
+                        Style="{StaticResource LinkButtonStyle}"
+                        HorizontalAlignment="Left"
+                        Margin="5,0"/>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Next}" Value="-">
+                    <Setter TargetName="LinkBtn" Property="Visibility" Value="Collapsed"/>
                     <Setter TargetName="DashText" Property="Visibility" Value="Visible"/>
                 </DataTrigger>
             </DataTemplate.Triggers>
@@ -107,12 +171,17 @@
                             Style="{StaticResource PrimaryButtonStyle}"
                             Margin="0,0,10,0"/>
 
+                    <Button Content="Delete Item" 
+                            Command="{Binding DeleteItemCommand}"
+                            Style="{StaticResource DangerButtonStyle}"
+                            Margin="0,0,10,0"/>
+
                     <Button Content="Edit Info" 
                             Command="{Binding EditCollectionCommand}"
                             Style="{StaticResource SecondaryButtonStyle}"
                             Margin="0,0,10,0"/>
 
-                    <Button Content="Delete" 
+                    <Button Content="Delete Collection" 
                             Command="{Binding DeleteCollectionCommand}"
                             Style="{StaticResource DangerButtonStyle}"/>
                 </StackPanel>
@@ -211,10 +280,13 @@
                       VerticalGridLinesBrush="{StaticResource AppBackgroundBrush}"
                       HorizontalGridLinesBrush="{StaticResource AppBackgroundBrush}"
                       Background="Transparent"
-                      BorderThickness="0">
+                      BorderThickness="0"
+                      FocusVisualStyle="{x:Null}">
 
             <DataGrid.CellStyle>
                 <Style TargetType="DataGridCell">
+                    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                    <Setter Property="BorderThickness" Value="0"/>
                     <Style.Triggers>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter Property="Background" Value="#2196F3"/>

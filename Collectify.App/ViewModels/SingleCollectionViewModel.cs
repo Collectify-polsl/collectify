@@ -3,6 +3,7 @@ using Collectify.App.Converters;
 using Collectify.Model.Collection;
 using Collectify.Model.Entities;
 using Collectify.Model.Enums;
+using Collectify.Model.InputModels;
 using Collectify.Model.Interfaces;
 using Collectify.App;
 using System.Collections.ObjectModel;
@@ -83,6 +84,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
             _selectedRow = value;
             OnPropertyChanged();
             (EditItemCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (DeleteItemCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
     }
 
@@ -166,6 +168,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     }
 
     public record ReferenceValue(int Id);
+    public record LocalLinkValue(int Id, string Display);
     public Action<int>? SwitchCollectionAction { get; set; }
     public Action? NavigateBackAction { get; set; }
 
@@ -186,7 +189,8 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
         ReturnCollectionsViewCommand = new RelayCommand(() => NavigateBackAction?.Invoke());
         AddNewElementCommand = new RelayCommand(OpenNewElementCreator);
-        DeleteCollectionCommand = new RelayCommand(DeleteCollection);
+        DeleteCollectionCommand = new AsyncRelayCommand(DeleteCollection);
+        DeleteItemCommand = new RelayCommand(DeleteItem, () => SelectedRow != null);
         NavigateToReferencedItemCommand = new RelayCommand<object>(NavigateToReferencedItem);
         OpenFullImageCommand = new RelayCommand<object>(OpenFullImage);
         ClearFilterCommand = new RelayCommand(ClearFilter);
@@ -196,6 +200,33 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
         LoadDataAsync();
         LoadCollectionListAsync();
+    }
+
+    public ICommand DeleteItemCommand { get; }
+
+    private async void DeleteItem()
+    {
+        if (SelectedRow == null) return;
+        
+        int itemId = (int)SelectedRow["Id"];
+        
+        var window = new ConfirmationWindow(
+             "Are you sure you want to delete this item? This operation cannot be undone.",
+             "Confirm deletion");
+        window.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
+
+        if (window.ShowDialog() != true) return;
+
+        try
+        {
+            await _itemService.DeleteItemAsync(itemId);
+            LoadDataAsync();
+            ShowStatus("Item deleted successfully.", StatusMessageType.Success);
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error deleting item: {ex.Message}", StatusMessageType.Error);
+        }
     }
 
     private async void EditSelectedItem()
@@ -276,6 +307,12 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
             string columnName = cell.Column.SortMemberPath;
             object cellValue = rowView[columnName];
 
+            if (cellValue is LocalLinkValue localLink)
+            {
+                 HighlightItem(localLink.Id);
+                 return;
+            }
+
             if (cellValue?.GetType().Name == "ReferenceValue")
             {
                 dynamic dynamicRef = cellValue;
@@ -343,13 +380,34 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
                 }
             }
 
-            table.Columns.Add("CreationDate", typeof(DateTime));
+            table.Columns.Add("Creation Date", typeof(DateTime));
+            table.Columns.Add("Previous", typeof(object));
+            table.Columns.Add("Next", typeof(object));
 
             foreach (var item in items)
             {
                 DataRow row = table.NewRow();
                 row["Id"] = item.Id;
-                row["CreationDate"] = item.CreationDate.ToLocalTime();
+                row["Creation Date"] = item.CreationDate.ToLocalTime();
+                
+                string prevDisplay = "Show";
+                string nextDisplay = "Show";
+
+                // Optimized approach: we have all items in 'items' list.
+                var prevItem = items.FirstOrDefault(i => i.Id == item.PreviousItemId);
+                if (prevItem != null)
+                {
+                     prevDisplay = GetItemDisplayText(prevItem);
+                }
+
+                var nextItem = items.FirstOrDefault(i => i.Id == item.NextItemId);
+                if (nextItem != null)
+                {
+                     nextDisplay = GetItemDisplayText(nextItem);
+                }
+
+                row["Previous"] = item.PreviousItemId.HasValue ? new LocalLinkValue(item.PreviousItemId.Value, prevDisplay) : (object)"-";
+                row["Next"] = item.NextItemId.HasValue ? new LocalLinkValue(item.NextItemId.Value, nextDisplay) : (object)"-";
 
                 foreach (var field in sortedFields)
                 {
@@ -426,7 +484,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         }
     }
 
-    private async void DeleteCollection()
+    private async Task DeleteCollection()
     {
         var window = new ConfirmationWindow(
             $"Are you sure you want to delete the collection \"{_currentCollection.Name}\"?\nThis operation cannot be undone.",
@@ -437,6 +495,17 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
         try
         {
+            // First unlink all items in this collection to avoid circular dependency/constraint issues during cascade delete
+            var items = await _itemService.GetItemsForCollectionAsync(_currentCollection.Id);
+            foreach (var item in items)
+            {
+                if (item.PreviousItemId.HasValue || item.NextItemId.HasValue)
+                {
+                     // Update with nulls
+                     await _itemService.UpdateItemAsync(item.Id, new List<NewItemFieldValueInput>(), null, null);
+                }
+            }
+
             await _collectionService.DeleteCollectionAsync(_currentCollection.Id);
             NavigateBackAction?.Invoke();
         }
@@ -461,7 +530,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         {
             FieldType.Integer => value.IntValue,
             FieldType.Decimal => value.DecimalValue,
-            FieldType.Date => value.DateValue?.ToString("dd/MM/yyyy"),
+            FieldType.Date => value.DateValue?.ToString("yyyy/MM/dd HH:mm"),
             FieldType.ItemReference => value.RelatedItemId.HasValue
                                        ? new ReferenceValue(value.RelatedItemId.Value)
                                        : null,
@@ -538,6 +607,18 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+    private string GetItemDisplayText(Item item)
+    {
+        foreach (var val in item.FieldValues)
+        {
+            if (!string.IsNullOrEmpty(val.TextValue)) return val.TextValue;
+            if (val.IntValue.HasValue) return val.IntValue.Value.ToString();
+            if (val.DecimalValue.HasValue) return val.DecimalValue.Value.ToString();
+            if (val.DateValue.HasValue) return val.DateValue.Value.ToString("yyyy/MM/dd");
+        }
+        return $"Item #{item.Id}";
+    }
 
     private void OpenFullImage(object? parameter)
     {

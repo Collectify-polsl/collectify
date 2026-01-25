@@ -94,6 +94,29 @@ public partial class SingleCollectionView : UserControl
             }
             else
             {
+                if (propertyName == "Previous")
+                {
+                    gridColumn = new DataGridTemplateColumn
+                    {
+                        Header = propertyName,
+                        CellTemplate = (DataTemplate)Resources["PreviousItemCellTemplate"],
+                        SortMemberPath = propertyName
+                    };
+                    ItemsGrid.Columns.Add(gridColumn);
+                    continue;
+                }
+                if (propertyName == "Next")
+                {
+                    gridColumn = new DataGridTemplateColumn
+                    {
+                        Header = propertyName,
+                        CellTemplate = (DataTemplate)Resources["NextItemCellTemplate"],
+                        SortMemberPath = propertyName
+                    };
+                    ItemsGrid.Columns.Add(gridColumn);
+                    continue;
+                }
+
                 bool isReference = false;
                 foreach (DataRow row in table.Rows)
                 {
@@ -105,7 +128,22 @@ public partial class SingleCollectionView : UserControl
                     }
                 }
 
-                if (isReference)
+                if (columnType == typeof(DateTime))
+                {
+                    gridColumn = new DataGridTextColumn
+                    {
+                        Header = propertyName,
+                        Binding = new Binding(propertyName) { StringFormat = "yyyy/MM/dd HH:mm" },
+                        ElementStyle = new Style(typeof(TextBlock))
+                        {
+                            Setters = {
+                                new Setter(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center),
+                                new Setter(TextBlock.MarginProperty, new Thickness(10, 0, 10, 0))
+                            }
+                        }
+                    };
+                }
+                else if (isReference)
                 {
                     gridColumn = new DataGridTemplateColumn
                     {

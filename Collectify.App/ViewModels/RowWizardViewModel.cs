@@ -29,6 +29,38 @@ public class RowWizardViewModel : INotifyPropertyChanged
     
     public ObservableCollection<FieldInputViewModel> Fields { get; } = new();
     
+    public ObservableCollection<ItemSelectionViewModel> CurrentCollectionItems { get; } = new();
+    
+    private List<Item> _rawCollectionItems = new();
+
+    private string _previousItemDisplay = "(None)";
+    public string PreviousItemDisplay
+    {
+        get => _previousItemDisplay;
+        set { _previousItemDisplay = value; OnPropertyChanged(); }
+    }
+
+    private string _nextItemDisplay = "(None)";
+    public string NextItemDisplay
+    {
+        get => _nextItemDisplay;
+        set { _nextItemDisplay = value; OnPropertyChanged(); }
+    }
+
+    private int? _selectedPreviousItemId;
+    public int? SelectedPreviousItemId
+    {
+        get => _selectedPreviousItemId;
+        set { _selectedPreviousItemId = value; OnPropertyChanged(); }
+    }
+
+    private int? _selectedNextItemId;
+    public int? SelectedNextItemId
+    {
+        get => _selectedNextItemId;
+        set { _selectedNextItemId = value; OnPropertyChanged(); }
+    }
+
     public Dictionary<string, List<Item>> ItemsByCollectionMap { get; } = new();
 
     private string _statusMessage = string.Empty;
@@ -50,6 +82,8 @@ public class RowWizardViewModel : INotifyPropertyChanged
     public ICommand SubmitRowCommand { get; }
     public ICommand UploadImageCommand { get; }
     public ICommand OpenReferencePickerCommand { get; }
+    public ICommand OpenPreviousPickerCommand { get; }
+    public ICommand OpenNextPickerCommand { get; }
 
     public RowWizardViewModel(Collection collection, IItemService itemService,
                               ITemplateService templateService, ICollectionService collectionService, Item? existingItem = null)
@@ -63,6 +97,8 @@ public class RowWizardViewModel : INotifyPropertyChanged
         SubmitRowCommand = new AsyncRelayCommand(SubmitRowAsync, CanSubmit);
         UploadImageCommand = new RelayCommand<FieldInputViewModel>(UploadImage);
         OpenReferencePickerCommand = new RelayCommand<FieldInputViewModel>(OpenReferencePicker);
+        OpenPreviousPickerCommand = new RelayCommand(OpenPreviousPicker);
+        OpenNextPickerCommand = new RelayCommand(OpenNextPicker);
 
         InitializeAsync();
     }
@@ -82,13 +118,78 @@ public class RowWizardViewModel : INotifyPropertyChanged
             var template = await _templateService.GetTemplateAsync(_collection.TemplateId, includeFields: true);
             if (template == null) return;
 
+            // Load items for Next/Previous selection
+            var currentItems = await _itemService.GetItemsForCollectionAsync(_collection.Id);
+            _rawCollectionItems = currentItems.Where(i => _existingItem == null || i.Id != _existingItem.Id).ToList();
+            
+            CurrentCollectionItems.Clear();
+            CurrentCollectionItems.Add(new ItemSelectionViewModel { Id = -1, DisplayText = "(None)" }); // Option to clear
+
+            foreach (var item in _rawCollectionItems)
+            {
+                CurrentCollectionItems.Add(new ItemSelectionViewModel 
+                { 
+                    Id = item.Id, 
+                    DisplayText = GetItemDisplayText(item) 
+                });
+            }
+
+            if (_existingItem != null)
+            {
+                SelectedPreviousItemId = _existingItem.PreviousItemId ?? -1;
+                SelectedNextItemId = _existingItem.NextItemId ?? -1;
+                
+                if (_existingItem.PreviousItemId.HasValue)
+                {
+                    var prev = currentItems.FirstOrDefault(i => i.Id == _existingItem.PreviousItemId.Value);
+                    PreviousItemDisplay = prev != null ? GetItemDisplayText(prev) : $"Item #{_existingItem.PreviousItemId}";
+                }
+                
+                if (_existingItem.NextItemId.HasValue)
+                {
+                    var next = currentItems.FirstOrDefault(i => i.Id == _existingItem.NextItemId.Value);
+                    NextItemDisplay = next != null ? GetItemDisplayText(next) : $"Item #{_existingItem.NextItemId}";
+                }
+            }
+            else
+            {
+                SelectedPreviousItemId = -1;
+                SelectedNextItemId = -1;
+            }
+
             // Load Lookups for References
             var collections = await _collectionService.GetCollectionsAsync();
             ItemsByCollectionMap.Clear();
+            
+            var templateCache = new Dictionary<int, Template>();
+
             foreach (var col in collections)
             {
+                if (!templateCache.ContainsKey(col.TemplateId))
+                {
+                    var t = await _templateService.GetTemplateAsync(col.TemplateId, includeFields: true);
+                    if (t != null) templateCache[col.TemplateId] = t;
+                }
+
                 var items = await _itemService.GetItemsForCollectionAsync(col.Id);
-                ItemsByCollectionMap[col.Name] = items.ToList();
+                var itemsList = items.ToList();
+
+                if (templateCache.TryGetValue(col.TemplateId, out var tmpl))
+                {
+                    var fieldMap = tmpl.Fields.ToDictionary(f => f.Id);
+                    foreach (var itm in itemsList)
+                    {
+                        foreach (var fv in itm.FieldValues)
+                        {
+                            if (fieldMap.TryGetValue(fv.FieldDefinitionId, out var def))
+                            {
+                                fv.FieldDefinition = def;
+                            }
+                        }
+                    }
+                }
+
+                ItemsByCollectionMap[col.Name] = itemsList;
             }
 
             Fields.Clear();
@@ -144,6 +245,48 @@ public class RowWizardViewModel : INotifyPropertyChanged
         {
             StatusMessage = $"Error initializing form: {ex.Message}";
             StatusType = StatusMessageType.Error;
+        }
+    }
+
+    private void OpenPreviousPicker()
+    {
+        var currentSelected = SelectedPreviousItemId == -1 ? null : SelectedPreviousItemId;
+        var picker = new LocalLinkPickerWindow(_rawCollectionItems, currentSelected);
+        picker.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);    
+
+        if (picker.ShowDialog() == true)
+        {
+            SelectedPreviousItemId = picker.SelectedItemId ?? -1;
+            if (picker.SelectedItemId.HasValue)
+            {
+                var item = _rawCollectionItems.FirstOrDefault(i => i.Id == picker.SelectedItemId.Value);
+                PreviousItemDisplay = item != null ? GetItemDisplayText(item) : $"Item #{picker.SelectedItemId}";
+            }
+            else
+            {
+                PreviousItemDisplay = "(None)";
+            }
+        }
+    }
+
+    private void OpenNextPicker()
+    {
+        var currentSelected = SelectedNextItemId == -1 ? null : SelectedNextItemId;
+        var picker = new LocalLinkPickerWindow(_rawCollectionItems, currentSelected);
+        picker.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);    
+
+        if (picker.ShowDialog() == true)
+        {
+            SelectedNextItemId = picker.SelectedItemId ?? -1;
+            if (picker.SelectedItemId.HasValue)
+            {
+                var item = _rawCollectionItems.FirstOrDefault(i => i.Id == picker.SelectedItemId.Value);
+                NextItemDisplay = item != null ? GetItemDisplayText(item) : $"Item #{picker.SelectedItemId}";
+            }
+            else
+            {
+                NextItemDisplay = "(None)";
+            }
         }
     }
 
@@ -259,14 +402,24 @@ public class RowWizardViewModel : INotifyPropertyChanged
                 }
             }
 
+            int? prevId = SelectedPreviousItemId == -1 ? null : SelectedPreviousItemId;
+            int? nextId = SelectedNextItemId == -1 ? null : SelectedNextItemId;
+
+            if (prevId.HasValue && nextId.HasValue && prevId == nextId)
+            {
+                StatusMessage = "Previous and Next items cannot be the same.";
+                StatusType = StatusMessageType.Error;
+                return;
+            }
+
             if (_existingItem != null)
             {
-                 await _itemService.UpdateItemAsync(_existingItem.Id, inputs, _existingItem.PreviousItemId, _existingItem.NextItemId);
+                 await _itemService.UpdateItemAsync(_existingItem.Id, inputs, prevId, nextId);
                  DialogResult = true; 
             }
             else
             {
-                await _itemService.CreateItemAsync(_collection.Id, inputs, null, null);
+                await _itemService.CreateItemAsync(_collection.Id, inputs, prevId, nextId);
                 DialogResult = true;
             }
             
@@ -277,6 +430,18 @@ public class RowWizardViewModel : INotifyPropertyChanged
             StatusMessage = $"Error saving item: {ex.Message}";
             StatusType = StatusMessageType.Error;
         }
+    }
+
+    private string GetItemDisplayText(Item item)
+    {
+        foreach (var val in item.FieldValues)
+        {
+            if (!string.IsNullOrEmpty(val.TextValue)) return val.TextValue;
+            if (val.IntValue.HasValue) return val.IntValue.Value.ToString();
+            if (val.DecimalValue.HasValue) return val.DecimalValue.Value.ToString();
+            if (val.DateValue.HasValue) return val.DateValue.Value.ToString("yyyy/MM/dd");
+        }
+        return $"Item #{item.Id}";
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -313,4 +478,10 @@ public class FieldInputViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+}
+
+public class ItemSelectionViewModel
+{
+    public int Id { get; set; }
+    public string DisplayText { get; set; } = string.Empty;
 }
