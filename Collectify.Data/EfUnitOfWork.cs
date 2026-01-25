@@ -23,21 +23,28 @@ public class EfUnitOfWork : IUnitOfWork
         FieldValues = new EfRepository<FieldValue>(context);
     }
 
+    /// <inheritdoc />
     public ITemplateRepository Templates { get; }
 
+    /// <inheritdoc />
     public IRepository<Collection> Collections { get; }
 
+    /// <inheritdoc />
     public IItemRepository Items { get; }
 
+    /// <inheritdoc />
     public IRepository<FieldDefinition> FieldDefinitions { get; }
 
+    /// <inheritdoc />
     public IRepository<FieldValue> FieldValues { get; }
 
+    /// <inheritdoc />
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return await _context.SaveChangesAsync(cancellationToken);
     }
 
+    /// <inheritdoc />
     public ValueTask DisposeAsync()
     {
         return _context.DisposeAsync();

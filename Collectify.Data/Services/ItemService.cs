@@ -19,6 +19,7 @@ public class ItemService : IItemService
         _unitOfWork = unitOfWork;
     }
 
+    /// <inheritdoc />
     public async Task<Item> CreateItemAsync(int collectionId, IReadOnlyList<NewItemFieldValueInput> fieldValues, int? previousItemId,
         int? nextItemId, CancellationToken cancellationToken = default)
     {
@@ -49,12 +50,14 @@ public class ItemService : IItemService
         return item;
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<Item>> GetItemsForCollectionAsync(int collectionId, CancellationToken cancellationToken = default)
     {
         var items = await _unitOfWork.Items.GetByCollectionIdAsync(collectionId, cancellationToken);
         return items.OrderBy(i => i.CreationDate).ToList();
     }
 
+    /// <inheritdoc />
     public async Task<Item?> GetItemAsync(int itemId, bool includeFieldValues = false, CancellationToken cancellationToken = default)
     {
         Item? item = await _unitOfWork.Items.GetByIdAsync(itemId, cancellationToken);
@@ -68,6 +71,7 @@ public class ItemService : IItemService
         return item;
     }
 
+    /// <inheritdoc />
     public async Task<Item> UpdateItemAsync(int itemId, IReadOnlyList<NewItemFieldValueInput> fieldValues, int? previousItemId, int? nextItemId,
         CancellationToken cancellationToken = default)
     {
@@ -123,6 +127,7 @@ public class ItemService : IItemService
         return item;
     }
 
+    /// <inheritdoc />
     public async Task DeleteItemAsync(int itemId, CancellationToken cancellationToken = default)
     {
         Item? item = await _unitOfWork.Items.GetByIdAsync(itemId, cancellationToken);

@@ -7,7 +7,13 @@ namespace Collectify.Model.InputModels;
 /// </summary>
 public class TemplateFieldDefinitionInput
 {
+    /// <summary>
+    /// The display name of the field.
+    /// </summary>
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>
+    /// The type of data this field holds.
+    /// </summary>
     public FieldType FieldType { get; set; }
 }

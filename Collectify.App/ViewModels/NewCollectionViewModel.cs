@@ -14,14 +14,23 @@ using System;
 
 namespace Collectify.App.ViewModels;
 
+/// <summary>
+/// View model for creating a new collection based on a selected template.
+/// </summary>
 public class NewCollectionViewModel : INotifyPropertyChanged
 {
     private readonly ICollectionService _collectionService;
     private readonly ITemplateService _templateService;
 
+    /// <summary>
+    /// Action to close the window.
+    /// </summary>
     public Action? CloseAction { get; set; }
 
     private string _collectionName = string.Empty;
+    /// <summary>
+    /// Gets or sets the name of the new collection.
+    /// </summary>
     public string CollectionName
     {
         get => _collectionName;
@@ -35,6 +44,9 @@ public class NewCollectionViewModel : INotifyPropertyChanged
     }
 
     private string _collectionDescription = string.Empty;
+    /// <summary>
+    /// Gets or sets the description of the new collection.
+    /// </summary>
     public string CollectionDescription
     {
         get => _collectionDescription;
@@ -46,6 +58,9 @@ public class NewCollectionViewModel : INotifyPropertyChanged
     }
 
     private string _statusMessage = string.Empty;
+    /// <summary>
+    /// Gets or sets the status message.
+    /// </summary>
     public string StatusMessage
     {
         get => _statusMessage;
@@ -53,15 +68,24 @@ public class NewCollectionViewModel : INotifyPropertyChanged
     }
 
     private StatusMessageType _statusType;
+    /// <summary>
+    /// Gets or sets the type of the status message.
+    /// </summary>
     public StatusMessageType StatusType
     {
         get => _statusType;
         set { _statusType = value; OnPropertyChanged(); }
     }
 
+    /// <summary>
+    /// Gets the list of available templates.
+    /// </summary>
     public ObservableCollection<Template> TemplateList { get; } = new();
 
     private Template? _selectedTemplate;
+    /// <summary>
+    /// Gets or sets the selected template for the collection.
+    /// </summary>
     public Template? SelectedTemplate
     {
         get => _selectedTemplate;
@@ -75,12 +99,26 @@ public class NewCollectionViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// Gets an error message if the collection cannot be created, or null otherwise.
+    /// </summary>
     public string? ErrorMessage => CanSave() ? null : "Please fill in all fields.";
 
+    /// <summary>
+    /// Gets the list of columns that will be part of the collection (based on the template).
+    /// </summary>
     public ObservableCollection<ColumnItem> DisplayedColumns { get; } = new();
 
+    /// <summary>
+    /// Command to create the new collection.
+    /// </summary>
     public ICommand CreateCommand { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NewCollectionViewModel"/> class.
+    /// </summary>
+    /// <param name="collectionService">The service for collection operations.</param>
+    /// <param name="templateService">The service for template operations.</param>
     public NewCollectionViewModel(
         ICollectionService collectionService,
         ITemplateService templateService)
@@ -156,6 +194,9 @@ public class NewCollectionViewModel : INotifyPropertyChanged
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
+/// <summary>
+/// Represents a column (field definition) displayed in the UI.
+/// </summary>
 public class ColumnItem
 {
     public int? Id { get; set; }

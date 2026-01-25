@@ -6,29 +6,37 @@ using static Collectify.App.ViewModels.SingleCollectionViewModel;
 
 namespace Collectify.App.Converters;
 
+/// <summary>
+/// Converts row values for display in the grid.
+/// </summary>
 public class RowValueConverter : IValueConverter, IMultiValueConverter
 {
-    // Metoda dla MultiBinding (TextBlock.Text)
+    /// <summary>
+    /// Converts multi-value binding (row and column name) to the cell value string.
+    /// </summary>
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
     {
         if (values.Length >= 2 && values[0] is DataRowView row && values[1] is string columnName)
         {
             var val = row[columnName];
-            if (val is ReferenceValue) return ""; // Zwracamy pusty string, bo przycisk go zastąpi
+            if (val is ReferenceValue) return "";
             return val?.ToString() ?? "-";
         }
         return "-";
     }
 
-    // Metoda dla zwykłego Bindingu (Triggers)
+    /// <summary>
+    /// Converts a single value to its string representation.
+    /// </summary>
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        // Jeśli trigger poda mu samą wartość komórki (np. "-")
         if (value is ReferenceValue) return "ReferenceValue";
         return value?.ToString() ?? "-";
     }
 
-    // Metody ConvertBack (wymagane przez interfejsy)
+    /// <inheritdoc />
     public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) => throw new NotImplementedException();
+    
+    /// <inheritdoc />
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
 }

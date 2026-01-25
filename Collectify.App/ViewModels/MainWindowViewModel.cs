@@ -12,6 +12,9 @@ using System.Windows.Input;
 
 namespace Collectify.App.ViewModels;
 
+/// <summary>
+/// The main view model for the application, managing the list of collections and navigation.
+/// </summary>
 public class MainWindowViewModel: INotifyPropertyChanged
 {
     private readonly ICollectionService _collectionService;
@@ -34,17 +37,47 @@ public class MainWindowViewModel: INotifyPropertyChanged
         }
     }
     public bool IsDetailsViewVisible => ActiveDetailsViewModel != null;
+
+    /// <summary>
+    /// Gets the list of available collections.
+    /// </summary>
     public ObservableCollection<Collection> Collections { get; } = new();
 
+    /// <summary>
+    /// Command to load collections from the data source.
+    /// </summary>
     public ICommand LoadCollectionsCommand { get; }
+
+    /// <summary>
+    /// Command to open the window for creating a new collection.
+    /// </summary>
     public ICommand CreateCollectionCommand { get; }
+
+    /// <summary>
+    /// Command to open the details view for a specific collection.
+    /// </summary>
     public ICommand OpenCollectionCommand { get; }
 
+    /// <summary>
+    /// Command to open the window for creating a new template.
+    /// </summary>
     public ICommand CreateTemplateCommand { get; }
+
+    /// <summary>
+    /// Command to open the window for editing an existing template.
+    /// </summary>
     public ICommand EditTemplateCommand { get; }
 
 
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MainWindowViewModel"/> class.
+    /// </summary>
+    /// <param name="collectionService">The service for managing collections.</param>
+    /// <param name="itemService">The service for managing items.</param>
+    /// <param name="templateService">The service for managing templates.</param>
+    /// <param name="createCollectionWindowFactory">Factory function to create the new collection window.</param>
+    /// <param name="rowWizardWindowFactory">Factory function to create the row wizard window.</param>
     public MainWindowViewModel(
         ICollectionService collectionService,
         IItemService itemService,

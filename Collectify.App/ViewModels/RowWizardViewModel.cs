@@ -17,6 +17,9 @@ using System.Windows.Input;
 
 namespace Collectify.App.ViewModels;
 
+/// <summary>
+/// View model for creating or editing an item (row) in a collection.
+/// </summary>
 public class RowWizardViewModel : INotifyPropertyChanged
 {
     private readonly Collection _collection;
@@ -25,10 +28,19 @@ public class RowWizardViewModel : INotifyPropertyChanged
     private readonly ICollectionService _collectionService;
     private readonly Item? _existingItem;
 
+    /// <summary>
+    /// Action to close the window.
+    /// </summary>
     public Action? CloseAction { get; set; }
     
+    /// <summary>
+    /// Gets the list of fields to be filled for the item.
+    /// </summary>
     public ObservableCollection<FieldInputViewModel> Fields { get; } = new();
     
+    /// <summary>
+    /// Gets the list of items in the current collection for linking (Previous/Next).
+    /// </summary>
     public ObservableCollection<ItemSelectionViewModel> CurrentCollectionItems { get; } = new();
     
     private List<Item> _rawCollectionItems = new();
@@ -123,7 +135,7 @@ public class RowWizardViewModel : INotifyPropertyChanged
             _rawCollectionItems = currentItems.Where(i => _existingItem == null || i.Id != _existingItem.Id).ToList();
             
             CurrentCollectionItems.Clear();
-            CurrentCollectionItems.Add(new ItemSelectionViewModel { Id = -1, DisplayText = "(None)" }); // Option to clear
+            CurrentCollectionItems.Add(new ItemSelectionViewModel { Id = -1, DisplayText = "(None)" });
 
             foreach (var item in _rawCollectionItems)
             {
@@ -449,6 +461,9 @@ public class RowWizardViewModel : INotifyPropertyChanged
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
+/// <summary>
+/// Represents a single field input in the row wizard, handling value binding and display.
+/// </summary>
 public class FieldInputViewModel : INotifyPropertyChanged
 {
     public int FieldId { get; set; }
@@ -480,6 +495,9 @@ public class FieldInputViewModel : INotifyPropertyChanged
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
+/// <summary>
+/// Represents an item in a selection list (e.g., for Previous/Next item linking).
+/// </summary>
 public class ItemSelectionViewModel
 {
     public int Id { get; set; }

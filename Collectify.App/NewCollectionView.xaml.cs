@@ -9,10 +9,15 @@ using System.Windows;
 namespace Collectify.App
 {
 
+    /// <summary>
+    /// Interaction logic for NewCollectionView.xaml.
+    /// </summary>
     public partial class NewCollectionView : Window
     {
-
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="NewCollectionView"/> class.
+        /// </summary>
+        /// <param name="viewModel">The view model.</param>
         public NewCollectionView(NewCollectionViewModel viewModel)
         {
             InitializeComponent();
@@ -20,7 +25,5 @@ namespace Collectify.App
 
             viewModel.CloseAction = () => this.Close();
         }
-
-
     }
 }

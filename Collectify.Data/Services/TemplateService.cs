@@ -17,6 +17,7 @@ public class TemplateService : ITemplateService
         _unitOfWork = unitOfWork;
     }
 
+    /// <inheritdoc />
     public async Task<Template> CreateTemplateAsync(string name, IReadOnlyList<TemplateFieldDefinitionInput> fields,
         CancellationToken cancellationToken = default)
     {
@@ -41,6 +42,7 @@ public class TemplateService : ITemplateService
         return template;
     }
 
+    /// <inheritdoc />
     public async Task UpdateTemplateAsync(int templateId, string name, CancellationToken cancellationToken = default)
     {
         Template? template = await _unitOfWork.Templates.GetByIdAsync(templateId, cancellationToken);
@@ -54,6 +56,7 @@ public class TemplateService : ITemplateService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
+    /// <inheritdoc />
     public async Task<FieldDefinition> AddFieldAsync(int templateId, string name, FieldType fieldType,
         CancellationToken cancellationToken = default)
     {
@@ -76,6 +79,7 @@ public class TemplateService : ITemplateService
         return definition;
     }
 
+    /// <inheritdoc />
     public async Task RemoveFieldAsync(int fieldDefinitionId, CancellationToken cancellationToken = default)
     {
         FieldDefinition? field = await _unitOfWork.FieldDefinitions
@@ -88,6 +92,7 @@ public class TemplateService : ITemplateService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
+    /// <inheritdoc />
     public async Task<Template?> GetTemplateAsync(int templateId, bool includeFields = false, CancellationToken cancellationToken = default)
     {
         if (includeFields)
@@ -96,12 +101,14 @@ public class TemplateService : ITemplateService
         return await _unitOfWork.Templates.GetByIdAsync(templateId, cancellationToken);
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<Template>> GetAllTemplatesAsync(CancellationToken cancellationToken = default)
     {
         IReadOnlyList<Template> templates = await _unitOfWork.Templates.GetAllAsync(cancellationToken);
         return templates.OrderBy(t => t.Name).ToList();
     }
 
+    /// <inheritdoc />
     public async Task DeleteTemplateAsync(int templateId, CancellationToken cancellationToken = default)
     {
         Template? template = await _unitOfWork.Templates.GetByIdAsync(templateId, cancellationToken);

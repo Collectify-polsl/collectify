@@ -16,6 +16,7 @@ public class CollectionService : ICollectionService
         _unitOfWork = unitOfWork;
     }
 
+    /// <inheritdoc />
     public async Task<CCollection> CreateCollectionAsync(int templateId, string name, string? description,
         CancellationToken cancellationToken = default)
     {
@@ -36,6 +37,7 @@ public class CollectionService : ICollectionService
         return collection;
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<CCollection>> GetCollectionsAsync(CancellationToken cancellationToken = default)
     {
         IReadOnlyList<CCollection> collections = await _unitOfWork.Collections.GetAllAsync(cancellationToken);
@@ -54,11 +56,13 @@ public class CollectionService : ICollectionService
         return collections.OrderBy(c => c.Name).ToList();
     }
 
+    /// <inheritdoc />
     public async Task<CCollection?> GetCollectionAsync(int collectionId, CancellationToken cancellationToken = default)
     {
         return await _unitOfWork.Collections.GetByIdAsync(collectionId, cancellationToken);
     }
 
+    /// <inheritdoc />
     public async Task UpdateCollectionAsync(int collectionId, string name, string? description, CancellationToken cancellationToken = default)
     {
         CCollection? collection = await _unitOfWork.Collections.GetByIdAsync(collectionId, cancellationToken);
@@ -73,6 +77,7 @@ public class CollectionService : ICollectionService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
+    /// <inheritdoc />
     public async Task DeleteCollectionAsync(int collectionId, CancellationToken cancellationToken = default)
     {
         CCollection? collection = await _unitOfWork.Collections.GetByIdAsync(collectionId, cancellationToken);

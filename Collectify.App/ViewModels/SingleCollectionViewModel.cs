@@ -24,6 +24,9 @@ using System.Windows.Data;
 
 namespace Collectify.App.ViewModels;
 
+/// <summary>
+/// View model for displaying and managing a single collection, including its items and filtering.
+/// </summary>
 public class SingleCollectionViewModel : INotifyPropertyChanged
 {
     private readonly Collection _currentCollection;
@@ -33,6 +36,9 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     private readonly Func<Collection, Item?, Window> _rowWizardFactory;
 
     private bool _isPopupView;
+    /// <summary>
+    /// Gets or sets a value indicating whether this view is displayed as a popup window.
+    /// </summary>
     public bool IsPopupView
     {
         get => _isPopupView;
@@ -40,9 +46,17 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     }
 
     public record CollectionDisplayItem(int Id, string Name);
+    
+    /// <summary>
+    /// Gets the list of available collections for navigation.
+    /// </summary>
     public ObservableCollection<CollectionDisplayItem> CollectionList { get; } = new();
 
     private DataTable? _gridDataTable;
+    
+    /// <summary>
+    /// Gets or sets the data table used for the grid display.
+    /// </summary>
     public DataTable? GridDataTable
     {
         get => _gridDataTable;
@@ -50,6 +64,10 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     }
 
     private ICollectionView _dynamicTable;
+    
+    /// <summary>
+    /// Gets or sets the collection view for the grid, supporting filtering and sorting.
+    /// </summary>
     public ICollectionView DynamicTable
     {
         get => _dynamicTable;
@@ -57,6 +75,10 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     }
 
     private CollectionDisplayItem? _selectedCollectionItem;
+    
+    /// <summary>
+    /// Gets or sets the currently selected collection in the navigation dropdown.
+    /// </summary>
     public CollectionDisplayItem? SelectedCollectionItem
     {
         get => _selectedCollectionItem;
@@ -76,6 +98,10 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     private int? _itemToHighlight;
 
     private DataRowView? _selectedRow;
+    
+    /// <summary>
+    /// Gets or sets the currently selected row in the grid.
+    /// </summary>
     public DataRowView? SelectedRow
     {
         get => _selectedRow;
@@ -89,6 +115,10 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     }
 
     private string? _selectedFilterColumn;
+    
+    /// <summary>
+    /// Gets or sets the column selected for filtering.
+    /// </summary>
     public string? SelectedFilterColumn
     {
         get => _selectedFilterColumn;
@@ -101,6 +131,10 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     }
 
     private string? _filterText;
+    
+    /// <summary>
+    /// Gets or sets the text used to filter the grid.
+    /// </summary>
     public string? FilterText
     {
         get => _filterText;
@@ -113,6 +147,10 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
     }
 
     private ObservableCollection<string> _availableColumns = new();
+    
+    /// <summary>
+    /// Gets or sets the list of columns available for filtering.
+    /// </summary>
     public ObservableCollection<string> AvailableColumns
     {
         get => _availableColumns;
@@ -169,9 +207,25 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
     public record ReferenceValue(int Id);
     public record LocalLinkValue(int Id, string Display);
+    
+    /// <summary>
+    /// Action to execute when switching to another collection.
+    /// </summary>
     public Action<int>? SwitchCollectionAction { get; set; }
+    
+    /// <summary>
+    /// Action to execute when navigating back to the main list.
+    /// </summary>
     public Action? NavigateBackAction { get; set; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SingleCollectionViewModel"/> class.
+    /// </summary>
+    /// <param name="collection">The collection to display.</param>
+    /// <param name="itemService">The service for item operations.</param>
+    /// <param name="templateService">The service for template operations.</param>
+    /// <param name="collectionService">The service for collection operations.</param>
+    /// <param name="rowWizardFactory">Factory to create the item editor window.</param>
     public SingleCollectionViewModel(
         Collection collection,
         IItemService itemService,

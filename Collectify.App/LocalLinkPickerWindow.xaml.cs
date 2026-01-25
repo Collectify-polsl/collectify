@@ -9,11 +9,23 @@ using System.Windows.Data;
 
 namespace Collectify.App;
 
+/// <summary>
+/// Interaction logic for LocalLinkPickerWindow.xaml.
+/// </summary>
 public partial class LocalLinkPickerWindow : Window
 {
     private ICollectionView _itemsView;
+    
+    /// <summary>
+    /// Gets the ID of the selected item.
+    /// </summary>
     public int? SelectedItemId { get; private set; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LocalLinkPickerWindow"/> class.
+    /// </summary>
+    /// <param name="items">The list of items to display.</param>
+    /// <param name="initialSelectedId">The initially selected item ID.</param>
     public LocalLinkPickerWindow(List<Item> items, int? initialSelectedId)
     {
         InitializeComponent();

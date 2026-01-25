@@ -10,23 +10,32 @@ using System.Windows.Data;
 
 namespace Collectify.App;
 
+/// <summary>
+/// Interaction logic for ReferencePickerWindow.xaml.
+/// </summary>
 public partial class ReferencePickerWindow : Window
 {
     private readonly Dictionary<string, List<Item>> _map;
     private ICollectionView? _itemsView;
 
-    // Właściwość, którą odczyta RowWizard po zamknięciu okna
+    /// <summary>
+    /// Gets the ID of the selected item.
+    /// </summary>
     public int? SelectedItemId { get; private set; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ReferencePickerWindow"/> class.
+    /// </summary>
+    /// <param name="map">A dictionary mapping collection names to lists of items.</param>
     public ReferencePickerWindow(Dictionary<string, List<Item>> map)
     {
         InitializeComponent();
         _map = map;
 
-        // Załaduj listę nazw kolekcji do ComboBoxa
+        // Load collection names into the ComboBox
         CollectionCombo.ItemsSource = _map.Keys.OrderBy(k => k).ToList();
 
-        // Opcjonalnie: wybierz pierwszą kolekcję na start
+        // Optionally select the first collection
         if (_map.Keys.Any())
         {
             CollectionCombo.SelectedIndex = 0;
@@ -37,7 +46,7 @@ public partial class ReferencePickerWindow : Window
     {
         if (CollectionCombo.SelectedItem is string selectedCollection)
         {
-            // Po zmianie kolekcji, wyświetl przedmioty do niej należące
+            // Update the items list when the collection selection changes
             if (_map.TryGetValue(selectedCollection, out var items))
             {
                 _itemsView = CollectionViewSource.GetDefaultView(items);
@@ -66,7 +75,6 @@ public partial class ReferencePickerWindow : Window
         {
             if (val.TextValue != null && val.TextValue.Contains(filterText, StringComparison.OrdinalIgnoreCase)) return true;
             if (val.IntValue.HasValue && val.IntValue.ToString().Contains(filterText)) return true;
-            // Add more checks if needed, but Text is primary
         }
         
         return false;
@@ -74,11 +82,10 @@ public partial class ReferencePickerWindow : Window
 
     private void Select_Click(object sender, RoutedEventArgs e)
     {
-        // Sprawdź czy użytkownik coś wybrał
         if (ItemsList.SelectedItem is Item selectedItem)
         {
             SelectedItemId = selectedItem.Id;
-            DialogResult = true; // Zamyka okno i wraca do RowWizard z wynikiem true
+            DialogResult = true;
         }
         else
         {

@@ -7,187 +7,200 @@ using System.Windows.Data;
 using System.Windows.Media;
 using Collectify.App.ViewModels;
 
-namespace Collectify.App;
-
-public partial class SingleCollectionView : UserControl
+namespace Collectify.App
 {
-    public SingleCollectionView()
+    /// <summary>
+    /// Interaction logic for SingleCollectionView.xaml.
+    /// </summary>
+    public partial class SingleCollectionView : UserControl
     {
-        InitializeComponent();
-        this.DataContextChanged += SingleCollectionView_DataContextChanged;
-        ItemsGrid.PreviewMouseDown += ItemsGrid_PreviewMouseDown;
-    }
-
-    private void ItemsGrid_PreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
-    {
-        var dependencyObject = (DependencyObject)e.OriginalSource;
-        var row = FindParent<DataGridRow>(dependencyObject);
-
-        if (row == null)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SingleCollectionView"/> class.
+        /// </summary>
+        public SingleCollectionView()
         {
-            ItemsGrid.SelectedItem = null;
-        }
-    }
-
-    public static T? FindParent<T>(DependencyObject? child) where T : DependencyObject
-    {
-        if (child == null) return null;
-        DependencyObject parentObject = VisualTreeHelper.GetParent(child);
-        if (parentObject == null) return null;
-        if (parentObject is T parent) return parent;
-        return FindParent<T>(parentObject);
-    }
-
-    private void SingleCollectionView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
-    {
-        if (e.NewValue is SingleCollectionViewModel vm)
-        {
-            vm.PropertyChanged += ViewModel_PropertyChanged;
-            if (vm.GridDataTable != null)
-            {
-                GenerateColumns(vm.GridDataTable);
-            }
+            InitializeComponent();
+            this.DataContextChanged += SingleCollectionView_DataContextChanged;
+            ItemsGrid.PreviewMouseDown += ItemsGrid_PreviewMouseDown;
         }
 
-        if (e.OldValue is SingleCollectionViewModel oldVm)
+        private void ItemsGrid_PreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            oldVm.PropertyChanged -= ViewModel_PropertyChanged;
-        }
-    }
+            var dependencyObject = (DependencyObject)e.OriginalSource;
+            var row = FindParent<DataGridRow>(dependencyObject);
 
-    private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName == nameof(SingleCollectionViewModel.GridDataTable))
-        {
-            if (sender is SingleCollectionViewModel vm && vm.GridDataTable != null)
+            if (row == null)
             {
                 ItemsGrid.SelectedItem = null;
-                GenerateColumns(vm.GridDataTable);
             }
         }
-    }
 
-    private void GenerateColumns(DataTable table)
-    {
-        ItemsGrid.Columns.Clear();
-
-        foreach (DataColumn column in table.Columns)
+        /// <summary>
+        /// Finds the parent of a given type in the visual tree.
+        /// </summary>
+        /// <typeparam name="T">The type of the parent to find.</typeparam>
+        /// <param name="child">The child element.</param>
+        /// <returns>The parent element of type T, or null if not found.</returns>
+        public static T? FindParent<T>(DependencyObject? child) where T : DependencyObject
         {
-            string propertyName = column.ColumnName;
+            if (child == null) return null;
+            DependencyObject parentObject = VisualTreeHelper.GetParent(child);
+            if (parentObject == null) return null;
+            if (parentObject is T parent) return parent;
+            return FindParent<T>(parentObject);
+        }
 
-            if (propertyName == "Id" || propertyName.EndsWith("_CollectionName"))
+        private void SingleCollectionView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (e.NewValue is SingleCollectionViewModel vm)
             {
-                continue;
+                vm.PropertyChanged += ViewModel_PropertyChanged;
+                if (vm.GridDataTable != null)
+                {
+                    GenerateColumns(vm.GridDataTable);
+                }
             }
 
-            DataGridColumn gridColumn;
-            var columnType = column.DataType;
-
-            if (columnType == typeof(byte[]))
+            if (e.OldValue is SingleCollectionViewModel oldVm)
             {
-                gridColumn = new DataGridTemplateColumn
-                {
-                    Header = propertyName,
-                    CellTemplate = (DataTemplate)Resources["ImageCellTemplate"],
-                    SortMemberPath = propertyName
-                };
+                oldVm.PropertyChanged -= ViewModel_PropertyChanged;
             }
-            else
+        }
+
+        private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(SingleCollectionViewModel.GridDataTable))
             {
-                if (propertyName == "Previous")
+                if (sender is SingleCollectionViewModel vm && vm.GridDataTable != null)
                 {
-                    gridColumn = new DataGridTemplateColumn
-                    {
-                        Header = propertyName,
-                        CellTemplate = (DataTemplate)Resources["PreviousItemCellTemplate"],
-                        SortMemberPath = propertyName
-                    };
-                    ItemsGrid.Columns.Add(gridColumn);
-                    continue;
+                    ItemsGrid.SelectedItem = null;
+                    GenerateColumns(vm.GridDataTable);
                 }
-                if (propertyName == "Next")
+            }
+        }
+
+        private void GenerateColumns(DataTable table)
+        {
+            ItemsGrid.Columns.Clear();
+
+            foreach (DataColumn column in table.Columns)
+            {
+                string propertyName = column.ColumnName;
+
+                if (propertyName == "Id" || propertyName.EndsWith("_CollectionName"))
                 {
-                    gridColumn = new DataGridTemplateColumn
-                    {
-                        Header = propertyName,
-                        CellTemplate = (DataTemplate)Resources["NextItemCellTemplate"],
-                        SortMemberPath = propertyName
-                    };
-                    ItemsGrid.Columns.Add(gridColumn);
                     continue;
                 }
 
-                bool isReference = false;
-                foreach (DataRow row in table.Rows)
-                {
-                    var value = row[propertyName];
-                    if (value?.GetType().Name == "ReferenceValue")
-                    {
-                        isReference = true;
-                        break;
-                    }
-                }
+                DataGridColumn gridColumn;
+                var columnType = column.DataType;
 
-                if (columnType == typeof(DateTime))
-                {
-                    gridColumn = new DataGridTextColumn
-                    {
-                        Header = propertyName,
-                        Binding = new Binding(propertyName) { StringFormat = "yyyy/MM/dd HH:mm" },
-                        ElementStyle = new Style(typeof(TextBlock))
-                        {
-                            Setters = {
-                                new Setter(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center),
-                                new Setter(TextBlock.MarginProperty, new Thickness(10, 0, 10, 0))
-                            }
-                        }
-                    };
-                }
-                else if (isReference)
+                if (columnType == typeof(byte[]))
                 {
                     gridColumn = new DataGridTemplateColumn
                     {
                         Header = propertyName,
-                        CellTemplate = (DataTemplate)Resources["ReferenceCellTemplate"],
+                        CellTemplate = (DataTemplate)Resources["ImageCellTemplate"],
                         SortMemberPath = propertyName
                     };
                 }
                 else
                 {
-                    gridColumn = new DataGridTextColumn
+                    if (propertyName == "Previous")
                     {
-                        Header = propertyName,
-                        Binding = new Binding(propertyName),
-                        ElementStyle = new Style(typeof(TextBlock))
+                        gridColumn = new DataGridTemplateColumn
                         {
-                            Setters = {
-                                new Setter(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center),
-                                new Setter(TextBlock.MarginProperty, new Thickness(10, 0, 10, 0))
-                            }
+                            Header = propertyName,
+                            CellTemplate = (DataTemplate)Resources["PreviousItemCellTemplate"],
+                            SortMemberPath = propertyName
+                        };
+                        ItemsGrid.Columns.Add(gridColumn);
+                        continue;
+                    }
+                    if (propertyName == "Next")
+                    {
+                        gridColumn = new DataGridTemplateColumn
+                        {
+                            Header = propertyName,
+                            CellTemplate = (DataTemplate)Resources["NextItemCellTemplate"],
+                            SortMemberPath = propertyName
+                        };
+                        ItemsGrid.Columns.Add(gridColumn);
+                        continue;
+                    }
+
+                    bool isReference = false;
+                    foreach (DataRow row in table.Rows)
+                    {
+                        var value = row[propertyName];
+                        if (value?.GetType().Name == "ReferenceValue")
+                        {
+                            isReference = true;
+                            break;
                         }
-                    };
+                    }
+
+                    if (columnType == typeof(DateTime))
+                    {
+                        gridColumn = new DataGridTextColumn
+                        {
+                            Header = propertyName,
+                            Binding = new Binding(propertyName) { StringFormat = "yyyy/MM/dd HH:mm" },
+                            ElementStyle = new Style(typeof(TextBlock))
+                            {
+                                Setters = {
+                                    new Setter(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center),
+                                    new Setter(TextBlock.MarginProperty, new Thickness(10, 0, 10, 0))
+                                }
+                            }
+                        };
+                    }
+                    else if (isReference)
+                    {
+                        gridColumn = new DataGridTemplateColumn
+                        {
+                            Header = propertyName,
+                            CellTemplate = (DataTemplate)Resources["ReferenceCellTemplate"],
+                            SortMemberPath = propertyName
+                        };
+                    }
+                    else
+                    {
+                        gridColumn = new DataGridTextColumn
+                        {
+                            Header = propertyName,
+                            Binding = new Binding(propertyName),
+                            ElementStyle = new Style(typeof(TextBlock))
+                            {
+                                Setters = {
+                                    new Setter(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center),
+                                    new Setter(TextBlock.MarginProperty, new Thickness(10, 0, 10, 0))
+                                }
+                            }
+                        };
+                    }
                 }
+
+                ItemsGrid.Columns.Add(gridColumn);
             }
 
-            ItemsGrid.Columns.Add(gridColumn);
+            if (ItemsGrid.Columns.Count > 0)
+            {
+                ItemsGrid.Columns[ItemsGrid.Columns.Count - 1].Width = new DataGridLength(1, DataGridLengthUnitType.Star);
+            }
         }
 
-        if (ItemsGrid.Columns.Count > 0)
+        private void ItemsGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            ItemsGrid.Columns[ItemsGrid.Columns.Count - 1].Width = new DataGridLength(1, DataGridLengthUnitType.Star);
+            if (sender is DataGrid grid && grid.SelectedItem != null)
+            {
+                grid.ScrollIntoView(grid.SelectedItem);
+            }
         }
-    }
 
-    private void ItemsGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (sender is DataGrid grid && grid.SelectedItem != null)
+        private void Button_Click(object sender, RoutedEventArgs e)
         {
-            grid.ScrollIntoView(grid.SelectedItem);
+
         }
-    }
-
-    private void Button_Click(object sender, RoutedEventArgs e)
-    {
-
     }
 }

@@ -4,8 +4,15 @@ using System.Windows.Controls;
 
 namespace Collectify.App;
 
+/// <summary>
+/// Interaction logic for RowWizardView.xaml.
+/// </summary>
 public partial class RowWizardView : Window
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RowWizardView"/> class.
+    /// </summary>
+    /// <param name="vm">The view model.</param>
     public RowWizardView(RowWizardViewModel vm)
     {
         InitializeComponent();
