@@ -7,6 +7,7 @@
         xmlns:vm="clr-namespace:Collectify.App.ViewModels"
         mc:Ignorable="d"
         Title="Collectify" Height="600" Width="900"
+        Icon="/Resources/Images/icon.png"
         Background="{StaticResource AppBackgroundBrush}"
         WindowStartupLocation="CenterScreen">
 
@@ -29,10 +30,19 @@
 
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,30,0,20">
+            <TextBlock Grid.Row="0" Text="COLLECTIFY" 
+                       FontFamily="/Resources/Fonts/#Iceberg"
+                       FontSize="80"
+                       Foreground="{StaticResource PrimaryBrush}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Margin="0,20,0,10"/>
+
+            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,20">
                 <Button Content="Create Collection"
                         Command="{Binding CreateCollectionCommand}"
                         Style="{StaticResource PrimaryButtonStyle}"
@@ -49,7 +59,7 @@
                         Width="160" Height="50" Margin="10" FontSize="14"/>
             </StackPanel>
 
-            <ListBox Grid.Row="1" ItemsSource="{Binding Collections}" 
+            <ListBox Grid.Row="2" ItemsSource="{Binding Collections}" 
                      Background="Transparent" 
                      BorderThickness="0" 
                      Padding="20"

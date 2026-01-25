@@ -1,10 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
 namespace Collectify.Data;
 
 /// <summary>
-/// Design time factory for EF Core tools. Used only by migrations, not at application runtime.
+/// Design time factory for EF Core tools. Used only by migrations.
 /// </summary>
 public class CollectifyContextFactory : IDesignTimeDbContextFactory<CollectifyContext>
 {

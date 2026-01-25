@@ -16,8 +16,6 @@ public class NewItemFieldValueInput
 
     public DateTime? DateValue { get; set; }
 
-    public bool? BoolValue { get; set; }
-
     public byte[]? ImageValue { get; set; }
 
     public int? RelatedItemId { get; set; }

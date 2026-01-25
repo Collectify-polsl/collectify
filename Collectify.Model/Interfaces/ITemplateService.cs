@@ -23,7 +23,7 @@ public interface ITemplateService
     /// <summary>
     /// Adds a single field definition to an existing template.
     /// </summary>
-    Task<FieldDefinition> AddFieldAsync(int templateId, string name, FieldType fieldType, bool isList,
+    Task<FieldDefinition> AddFieldAsync(int templateId, string name, FieldType fieldType,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -39,8 +39,7 @@ public interface ITemplateService
     /// <summary>
     /// Returns all templates (without fields).
     /// </summary>
-    Task<IReadOnlyList<Template>> GetAllTemplatesAsync(string? search = null, bool sortDescending = false,
-        CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Template>> GetAllTemplatesAsync(CancellationToken cancellationToken = default);
 
 
     /// <summary>

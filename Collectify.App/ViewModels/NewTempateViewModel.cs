@@ -133,8 +133,7 @@ public class NewTemplateViewModel : INotifyPropertyChanged
                 new TemplateFieldDefinitionInput
                 {
                     Name = c.Name,
-                    FieldType = c.DataType,
-                    IsList = false
+                    FieldType = c.DataType
                 }).ToList();
 
             await _templateService.CreateTemplateAsync(TemplateName, fields);

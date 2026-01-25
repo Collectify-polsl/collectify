@@ -25,4 +25,9 @@
     <ProjectReference Include="..\Collectify.Model\Collectify.Model.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Resource Include="Resources\Fonts\Iceberg-Regular.ttf" />
+    <Resource Include="Resources\Images\icon.png" />
+  </ItemGroup>
+
 </Project>

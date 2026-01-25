@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:converters="clr-namespace:Collectify.App.Converters"
         mc:Ignorable="d"
+        Icon="/Resources/Images/icon.png"
         Title="Add Item" Height="500" Width="600" 
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
         Background="{StaticResource AppBackgroundBrush}">

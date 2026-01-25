@@ -1,6 +1,7 @@
 <Window x:Class="Collectify.App.EditCollectionWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Icon="/Resources/Images/icon.png"
         Title="Edit Collection Info" Height="300" Width="500"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
     <Grid Margin="20">

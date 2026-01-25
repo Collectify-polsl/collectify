@@ -17,8 +17,7 @@ public interface IItemService
     /// <summary>
     /// Returns all items that belong to a specific collection.
     /// </summary>
-    Task<IReadOnlyList<Item>> GetItemsForCollectionAsync(int collectionId, string? search = null, int? sortByFieldDefinitionId = null,
-        bool descending = false, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Item>> GetItemsForCollectionAsync(int collectionId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns a single item by its identifier.

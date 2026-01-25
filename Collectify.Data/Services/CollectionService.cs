@@ -1,4 +1,5 @@
-﻿using Collectify.Model.Interfaces;
+﻿using Collectify.Model.Entities;
+using Collectify.Model.Interfaces;
 using CCollection = Collectify.Model.Collection.Collection;
 
 namespace Collectify.Data.Services;
@@ -35,40 +36,26 @@ public class CollectionService : ICollectionService
         return collection;
     }
 
-    public async Task<IReadOnlyList<CCollection>> GetCollectionsAsync(int? templateId = null, string? search = null, bool sortDescending = false,
-        CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<CCollection>> GetCollectionsAsync(CancellationToken cancellationToken = default)
     {
         IReadOnlyList<CCollection> collections = await _unitOfWork.Collections.GetAllAsync(cancellationToken);
+        IReadOnlyList<Template> templates = await _unitOfWork.Templates.GetAllAsync(cancellationToken);
 
-        IEnumerable<CCollection> query = collections;
+        var templateMap = templates.ToDictionary(t => t.Id);
 
-        if (templateId is not null)
-            query = query.Where(c => c.TemplateId == templateId.Value);
-
-        if (!string.IsNullOrWhiteSpace(search))
+        foreach (var collection in collections)
         {
-            string term = search.Trim();
-
-            query = query.Where(c =>
-                (!string.IsNullOrEmpty(c.Name) && c.Name.Contains(term, StringComparison.OrdinalIgnoreCase))
-                ||
-                (!string.IsNullOrEmpty(c.Description) && c.Description.Contains(term, StringComparison.OrdinalIgnoreCase)));
+            if (templateMap.TryGetValue(collection.TemplateId, out var template))
+            {
+                collection.Template = template;
+            }
         }
 
-        query = sortDescending ? query.OrderByDescending(c => c.Name) : query.OrderBy(c => c.Name);
-
-        return query.ToList();
+        return collections.OrderBy(c => c.Name).ToList();
     }
 
-    public async Task<CCollection?> GetCollectionAsync(int collectionId, bool includeItems = false, CancellationToken cancellationToken = default)
+    public async Task<CCollection?> GetCollectionAsync(int collectionId, CancellationToken cancellationToken = default)
     {
-        if (includeItems)
-        {
-            IReadOnlyList<CCollection> all = await _unitOfWork.Collections.GetWithItemsAsync(cancellationToken);
-
-            return all.FirstOrDefault(c => c.Id == collectionId);
-        }
-
         return await _unitOfWork.Collections.GetByIdAsync(collectionId, cancellationToken);
     }
 

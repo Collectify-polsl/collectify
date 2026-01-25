@@ -212,7 +212,7 @@ public class EditTemplateViewModel : INotifyPropertyChanged
             foreach (var col in Columns.Where(c => !c.Id.HasValue))
             {
                 var newField = await _templateService.AddFieldAsync(
-                    SelectedTemplate.Id, col.Name, col.DataType, false);
+                    SelectedTemplate.Id, col.Name, col.DataType);
                 col.Id = newField.Id;
             }
 

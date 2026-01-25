@@ -1,6 +1,7 @@
 <Window x:Class="Collectify.App.ConfirmationWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Icon="/Resources/Images/icon.png"
         Title="Confirm" Height="200" Width="400"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
         Background="{StaticResource AppBackgroundBrush}">

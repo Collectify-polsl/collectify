@@ -17,7 +17,7 @@ public class EfUnitOfWork : IUnitOfWork
         _context = context;
 
         Templates = new TemplateRepository(context);
-        Collections = new CollectionRepository(context);
+        Collections = new EfRepository<Collection>(context);
         Items = new ItemRepository(context);
         FieldDefinitions = new EfRepository<FieldDefinition>(context);
         FieldValues = new EfRepository<FieldValue>(context);
@@ -25,7 +25,7 @@ public class EfUnitOfWork : IUnitOfWork
 
     public ITemplateRepository Templates { get; }
 
-    public ICollectionRepository Collections { get; }
+    public IRepository<Collection> Collections { get; }
 
     public IItemRepository Items { get; }
 

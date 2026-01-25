@@ -2,8 +2,9 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:converters="clr-namespace:Collectify.App.Converters"
-        Title="Select Item" Height="450" Width="400"
-        WindowStartupLocation="CenterOwner">
+        Icon="/Resources/Images/icon.png"
+        Title="Select Item" Height="450" Width="400" 
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
     
     <Window.Resources>
         <converters:FieldValueDisplayConverter x:Key="FieldValueDisplayConverter"/>

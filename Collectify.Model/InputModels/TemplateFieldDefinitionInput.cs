@@ -10,6 +10,4 @@ public class TemplateFieldDefinitionInput
     public string Name { get; set; } = string.Empty;
 
     public FieldType FieldType { get; set; }
-
-    public bool IsList { get; set; }
 }

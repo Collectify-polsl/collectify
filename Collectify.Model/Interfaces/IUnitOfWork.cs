@@ -12,7 +12,7 @@ public interface IUnitOfWork : IAsyncDisposable
     ITemplateRepository Templates { get; }
 
     /// <summary>Repository for collection entities.</summary>
-    ICollectionRepository Collections { get; }
+    IRepository<Collection.Collection> Collections { get; }
 
     /// <summary>Repository for item entities.</summary>
     IItemRepository Items { get; }

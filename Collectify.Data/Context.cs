@@ -64,7 +64,7 @@ public class CollectifyContext(DbContextOptions<CollectifyContext> options) : Db
             .HasMaxLength(200);
 
             entity.HasMany(x => x.Fields)
-            .WithOne(f => f.Template)
+            .WithOne()
             .HasForeignKey(f => f.TemplateId)
             .OnDelete(DeleteBehavior.Cascade);
         }
@@ -112,11 +112,6 @@ public class CollectifyContext(DbContextOptions<CollectifyContext> options) : Db
             .WithMany()
             .HasForeignKey(x => x.TemplateId)
             .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasMany(x => x.Items)
-            .WithOne(x => x.Collection)
-            .HasForeignKey(x => x.CollectionId)
-            .OnDelete(DeleteBehavior.Cascade);
         });
     }
 
@@ -134,8 +129,13 @@ public class CollectifyContext(DbContextOptions<CollectifyContext> options) : Db
             .IsRequired();
 
             entity.HasMany(x => x.FieldValues)
-            .WithOne(x => x.Item)
+            .WithOne()
             .HasForeignKey(x => x.ItemId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Collection)
+            .WithMany()
+            .HasForeignKey(x => x.CollectionId)
             .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.PreviousItem)
@@ -162,11 +162,6 @@ public class CollectifyContext(DbContextOptions<CollectifyContext> options) : Db
         modelBuilder.Entity<FieldValue>(entity =>
         {
             entity.HasKey(x => x.Id);
-
-            entity.HasOne(x => x.Item)
-            .WithMany(x => x.FieldValues)
-            .HasForeignKey(x => x.ItemId)
-            .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.FieldDefinition)
             .WithMany()

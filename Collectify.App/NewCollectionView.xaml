@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Collectify.App"
         xmlns:converters="clr-namespace:Collectify.App.Converters"
+        Icon="/Resources/Images/icon.png"
         Title="New Collection" Height="450" Width="700" 
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource AppBackgroundBrush}">

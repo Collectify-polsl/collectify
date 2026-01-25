@@ -40,9 +40,6 @@ public class ItemService : IItemService
 
         List<FieldValue> values = await BuildFieldValuesAsync(item, fieldValues, cancellationToken);
 
-        foreach (FieldValue v in values)
-            await _unitOfWork.FieldValues.AddAsync(v, cancellationToken);
-
         await _unitOfWork.Items.AddAsync(item, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -52,56 +49,10 @@ public class ItemService : IItemService
         return item;
     }
 
-    public async Task<IReadOnlyList<Item>> GetItemsForCollectionAsync(int collectionId, string? search = null, int? sortByFieldDefinitionId = null,
-        bool descending = false, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Item>> GetItemsForCollectionAsync(int collectionId, CancellationToken cancellationToken = default)
     {
         var items = await _unitOfWork.Items.GetByCollectionIdAsync(collectionId, cancellationToken);
-
-        IEnumerable<Item> query = items;
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            string term = search.Trim();
-            query = query.Where(i => i.FieldValues.Any(v =>
-                !string.IsNullOrEmpty(v.TextValue) &&
-                v.TextValue.Contains(term, StringComparison.OrdinalIgnoreCase)));
-        }
-
-        if (sortByFieldDefinitionId is null)
-        {
-            query = descending ? query.OrderByDescending(i => i.CreationDate) : query.OrderBy(i => i.CreationDate);
-
-            return query.ToList();
-        }
-
-        FieldDefinition? def = await _unitOfWork.FieldDefinitions.GetByIdAsync(sortByFieldDefinitionId.Value, cancellationToken);
-
-        if (def is null)
-            throw new InvalidOperationException($"FieldDefinition with id {sortByFieldDefinitionId.Value} was not found.");
-
-        Func<Item, object?> keySelector = def.FieldType switch
-        {
-            FieldType.Text => i => i.FieldValues
-                .FirstOrDefault(v => v.FieldDefinitionId == def.Id)?.TextValue,
-
-            FieldType.Integer => i => i.FieldValues
-                .FirstOrDefault(v => v.FieldDefinitionId == def.Id)?.IntValue,
-
-            FieldType.Decimal => i => i.FieldValues
-                .FirstOrDefault(v => v.FieldDefinitionId == def.Id)?.DecimalValue,
-
-            FieldType.Date => i => i.FieldValues
-                .FirstOrDefault(v => v.FieldDefinitionId == def.Id)?.DateValue,
-
-            FieldType.ItemReference => i => i.FieldValues
-                .FirstOrDefault(v => v.FieldDefinitionId == def.Id)?.RelatedItemId,
-
-            _ => throw new NotSupportedException($"Unsupported type {def.FieldType}")
-        };
-
-        query = descending ? query.OrderByDescending(keySelector) : query.OrderBy(keySelector);
-
-        return query.ToList();
+        return items.OrderBy(i => i.CreationDate).ToList();
     }
 
     public async Task<Item?> GetItemAsync(int itemId, bool includeFieldValues = false, CancellationToken cancellationToken = default)
@@ -164,9 +115,6 @@ public class ItemService : IItemService
             _unitOfWork.FieldValues.Remove(v);
 
         List<FieldValue> newValues = await BuildFieldValuesAsync(item, fieldValues, cancellationToken);
-
-        foreach (FieldValue v in newValues)
-            await _unitOfWork.FieldValues.AddAsync(v, cancellationToken);
 
         _unitOfWork.Items.Update(item);
         await SetBidirectionalLinksAsync(item, previousItemId, nextItemId, cancellationToken);
@@ -243,9 +191,9 @@ public class ItemService : IItemService
 
             FieldValue fv = new FieldValue
             {
-                Item = item,
                 FieldDefinitionId = def.Id
             };
+            item.FieldValues.Add(fv);
 
             switch (def.FieldType)
             {

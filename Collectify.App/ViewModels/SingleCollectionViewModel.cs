@@ -338,6 +338,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
                     var window = new Window
                     {
+                        Icon = new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/Resources/Images/icon.png")),
                         Title = $"Collection: {targetCollection.Name}",
                         Width = 900,
                         Height = 500,
@@ -445,6 +446,11 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
                 {
                     AvailableColumns.Add(column.ColumnName);
                 }
+            }
+
+            if (SelectedFilterColumn == null && AvailableColumns.Any())
+            {
+                SelectedFilterColumn = AvailableColumns.First();
             }
 
             if (_itemToHighlight.HasValue)
@@ -650,6 +656,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
             var window = new Window
             {
+                Icon = new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/Resources/Images/icon.png")),
                 Title = "View Image",
                 WindowStartupLocation = WindowStartupLocation.CenterScreen,
                 SizeToContent = SizeToContent.WidthAndHeight,

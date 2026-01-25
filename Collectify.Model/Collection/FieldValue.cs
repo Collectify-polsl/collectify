@@ -19,11 +19,6 @@ public class FieldValue
     public int ItemId { get; set; }
 
     /// <summary>
-    /// The item to which this field value belongs.
-    /// </summary>
-    public Item Item { get; set; } = null!;
-
-    /// <summary>
     /// Foreign key of the field definition describing this value.
     /// </summary>
     public int FieldDefinitionId { get; set; }

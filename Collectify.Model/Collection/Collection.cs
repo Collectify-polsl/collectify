@@ -31,9 +31,4 @@ public class Collection
     /// Navigation property to the template used by this collection.
     /// </summary>
     public Template Template { get; set; } = null!;
-
-    /// <summary>
-    /// Items that belong to this collection.
-    /// </summary>
-    public ICollection<Item> Items { get; set; } = new List<Item>();
 }

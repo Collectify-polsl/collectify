@@ -30,9 +30,7 @@ public class TemplateService : ITemplateService
             FieldDefinition definition = new FieldDefinition
             {
                 Name = field.Name,
-                FieldType = field.FieldType,
-                IsList = field.IsList,
-                Template = template
+                FieldType = field.FieldType
             };
             template.Fields.Add(definition);
         }
@@ -56,7 +54,7 @@ public class TemplateService : ITemplateService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<FieldDefinition> AddFieldAsync(int templateId, string name, FieldType fieldType, bool isList,
+    public async Task<FieldDefinition> AddFieldAsync(int templateId, string name, FieldType fieldType,
         CancellationToken cancellationToken = default)
     {
         Template? template = await _unitOfWork.Templates
@@ -69,7 +67,6 @@ public class TemplateService : ITemplateService
         {
             Name = name,
             FieldType = fieldType,
-            IsList = isList,
             TemplateId = templateId
         };
 
@@ -99,22 +96,10 @@ public class TemplateService : ITemplateService
         return await _unitOfWork.Templates.GetByIdAsync(templateId, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Template>> GetAllTemplatesAsync(string? search = null, bool sortDescending = false,
-        CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Template>> GetAllTemplatesAsync(CancellationToken cancellationToken = default)
     {
         IReadOnlyList<Template> templates = await _unitOfWork.Templates.GetAllAsync(cancellationToken);
-
-        IEnumerable<Template> query = templates;
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            string term = search.Trim();
-            query = query.Where(t => !string.IsNullOrEmpty(t.Name) && t.Name.Contains(term, StringComparison.OrdinalIgnoreCase));
-        }
-
-        query = sortDescending ? query.OrderByDescending(t => t.Name) : query.OrderBy(t => t.Name);
-
-        return query.ToList();
+        return templates.OrderBy(t => t.Name).ToList();
     }
 
     public async Task DeleteTemplateAsync(int templateId, CancellationToken cancellationToken = default)

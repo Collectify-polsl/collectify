@@ -23,14 +23,9 @@ public class FieldDefinition
     public int TemplateId { get; set; }
 
     /// <summary>
-    /// Template this field definition belongs to.
-    /// </summary>
-    public Template Template { get; set; } = null!;
-
-    /// <summary>
-    /// Type of the field, for example text or integer.
+    /// Type of the field.
     /// </summary>
     public FieldType FieldType { get; set; }
 
-    public bool IsList { get; set; } = false;
+
 }
