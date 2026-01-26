@@ -653,7 +653,6 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
 
     private void ClearFilter()
     {
-        SelectedFilterColumn = null;
         FilterText = string.Empty;
 
         if (DynamicTable != null)
