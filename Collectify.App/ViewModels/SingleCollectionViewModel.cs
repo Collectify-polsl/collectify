@@ -461,8 +461,8 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
                      nextDisplay = GetItemDisplayText(nextItem);
                 }
 
-                row["Previous"] = item.PreviousItemId.HasValue ? new LocalLinkValue(item.PreviousItemId.Value, prevDisplay) : (object)"-";
-                row["Next"] = item.NextItemId.HasValue ? new LocalLinkValue(item.NextItemId.Value, nextDisplay) : (object)"-";
+                row["Previous"] = item.PreviousItemId.HasValue ? new LocalLinkValue(item.PreviousItemId.Value, prevDisplay) : new LocalLinkValue(-1, "-");
+                row["Next"] = item.NextItemId.HasValue ? new LocalLinkValue(item.NextItemId.Value, nextDisplay) : new LocalLinkValue(-1, "-");
 
                 foreach (var field in sortedFields)
                 {

@@ -79,7 +79,7 @@
                         Margin="5,0"/>
             </Grid>
             <DataTemplate.Triggers>
-                <DataTrigger Binding="{Binding Previous}" Value="-">
+                <DataTrigger Binding="{Binding Previous.Display}" Value="-">
                     <Setter TargetName="LinkBtn" Property="Visibility" Value="Collapsed"/>
                     <Setter TargetName="DashText" Property="Visibility" Value="Visible"/>
                 </DataTrigger>
@@ -98,7 +98,7 @@
                         Margin="5,0"/>
             </Grid>
             <DataTemplate.Triggers>
-                <DataTrigger Binding="{Binding Next}" Value="-">
+                <DataTrigger Binding="{Binding Next.Display}" Value="-">
                     <Setter TargetName="LinkBtn" Property="Visibility" Value="Collapsed"/>
                     <Setter TargetName="DashText" Property="Visibility" Value="Visible"/>
                 </DataTrigger>
