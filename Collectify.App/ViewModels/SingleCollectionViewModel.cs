@@ -590,7 +590,7 @@ public class SingleCollectionViewModel : INotifyPropertyChanged
         {
             FieldType.Integer => value.IntValue,
             FieldType.Decimal => value.DecimalValue,
-            FieldType.Date => value.DateValue?.ToString("yyyy/MM/dd HH:mm"),
+            FieldType.Date => value.DateValue?.ToString("yyyy/MM/dd"),
             FieldType.ItemReference => value.RelatedItemId.HasValue
                                        ? new ReferenceValue(value.RelatedItemId.Value)
                                        : null,
